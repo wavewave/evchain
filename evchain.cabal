@@ -26,11 +26,18 @@ Library
   ghc-prof-options: -caf-all -auto-all
   Build-Depends: 
                    base>4, mtl>2, directory, filepath,
-                   cmdargs
+                   cmdargs, 
+                   LHEParser >= 0.2.999,
+                   HEPUtil, 
+                   enumerator, 
+                   vector, 
+                   hmatrix
+                   
   Exposed-Modules: 
                    HEP.Automation.MadGraph.EventChain.ProgType
                    HEP.Automation.MadGraph.EventChain.Job
                    HEP.Automation.MadGraph.EventChain.Command
+                   HEP.Automation.MadGraph.EventChain.LHEConn
   Other-Modules: 
 
  
