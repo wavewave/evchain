@@ -1,6 +1,7 @@
 module HEP.Automation.MadGraph.EventChain.LHEConn where 
 
 import HEP.Parser.LHEParser.Type
+import Data.Either
 import Data.List
 import Text.Printf
 import System.IO
@@ -46,13 +47,41 @@ allFindPtlIDStatus ls pinfos = foldr f (Right ([],pinfos)) ls
             (Nothing,_) -> Left ((show pdgid) ++ "," ++ (show status) ++ " cannot be found.")
             (Just pinfo,remaining') -> Right ((pid,pinfo):done,remaining')
 
+
 -- | 
 
-{-
-matchPtl4Cross :: GCross ProcessNode DecayNode TerminalNode -> LHEvent
-                  -> ([ParticleID,PtlInfo],[ParticleID,PtlInfo])
-matchPtl4Cross (GCross inc out xpr) = 
-  -}
+mkIDTriple :: Status -> GDecayTop DNode TNode (ParticleID,PDGID) -> (ParticleID,PDGID,Status)
+mkIDTriple st x = let (pid,pdgid) = getContent x in (pid,pdgid,st)
+
+-- | 
+
+matchInOut :: ([(ParticleID,PDGID,Status)],[(ParticleID,PDGID,Status)]) 
+              -> LHEvent 
+              -> Either String ([(ParticleID,PtlInfo)],[(ParticleID,PtlInfo)],[PtlInfo])
+matchInOut (incids,outids) (LHEvent _ pinfos) = do 
+    (matchinc,remaining) <- allFindPtlIDStatus incids pinfos 
+    (matchout,remaining') <- allFindPtlIDStatus outids remaining
+    return (matchinc,matchout,remaining')
+
+-- | 
+
+matchPtl4Cross :: GCross XNode DNode TNode (ParticleID,PDGID)
+                  -> LHEvent
+                  -> Either String ([(ParticleID,PtlInfo)],[(ParticleID,PtlInfo)],[PtlInfo])
+matchPtl4Cross (GCross inc out xpr) lhe = matchInOut (incids,outids) lhe
+  where incids = map (mkIDTriple (-1)) inc
+        outids = map (mkIDTriple 1) out
+
+-- | 
+
+matchPtl4Decay :: (DNode (ParticleID,PDGID), [GDecayTop DNode TNode (ParticleID,PDGID)])
+                  -> LHEvent
+                  -> Either String ([(ParticleID,PtlInfo)],[(ParticleID,PtlInfo)],[PtlInfo])
+matchPtl4Decay (inc,out) lhe = matchInOut (incids,outids) lhe 
+  where incids = case inc of 
+                   DNode (x,y) _ -> [(x,y,-1)]
+        outids = map (mkIDTriple 1) out 
+  
 
 
 

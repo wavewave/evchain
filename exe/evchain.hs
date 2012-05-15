@@ -28,24 +28,32 @@ zipWithM3 f xs ys zs = sequence (zipWith3 f xs ys zs)
 
 -- | 
 
-{-
-testCross :: GCross XNode DNode TNode  
-testCross = GCross incoms outgos (PNode 333)
 
-incoms = [ GTerminal (TNode 444) ]
 
-outgos = [ GTerminal (TNode 555) 
-         , GDecay (DNode 334 222, [ GTerminal (TNode 666)
-                                  , GTerminal (TNode 999) ] )
-         ]
--}
+testCross :: GCross XNode DNode TNode (ParticleID,PDGID)
+testCross = GCross incoms outgos (XNode 1) 
 
+incoms = [ GTerminal (TNode (1,21)) 
+         , GTerminal (TNode (2,21)) ] 
+
+outgos = [ GTerminal (TNode (1,-1))
+         , GTerminal (TNode (2,1))
+         , GTerminal (TNode (3,1000022))
+         , GTerminal (TNode (4,-1))
+         , GTerminal (TNode (5,1))
+         , GTerminal (TNode (6,1000022)) ] 
+
+testDecay :: GDecayTop DNode TNode (ParticleID,PDGID)
+testDecay = GDecay (DNode (1,1000022) 33, [ (GTerminal (TNode (1,-2)))
+                                          , (GTerminal (TNode (2,-1)))
+                                          , (GTerminal (TNode (3,-1)))
+                                          , (GTerminal (TNode (4,9000202))) ])
 
 -- | 
 
 main :: IO () 
 main = do 
-  let lhefile = "test.lhe.gz"
+  let lhefile = "test2.lhe.gz"
   -- putStrLn (printCrossStr testCross)
   -- startMine "test.lhe.gz" "test2.lhe.gz" "test3.lhe.gz"
   --           "testoutput.dat"
@@ -55,9 +63,9 @@ main = do
   let Just (_, Just (fstev,_,_)) = head lst1 
       LHEvent einfo pinfos = fstev
   putStrLn $ lheFormatOutput fstev
-  let (Just pinfo1, pinfos') = (findPtlIDStatus (1000021,2) pinfos)
-  putStrLn $ pformat pinfo1
-  putStrLn $ concatMap pformat pinfos'
+  -- let (Just pinfo1, pinfos') = (findPtlIDStatus (1000021,2) pinfos)
+  -- putStrLn $ pformat pinfo1
+  -- putStrLn $ concatMap pformat pinfos'
 
   let r = allFindPtlIDStatus [ (1,-1,1)
                              , (2,1,1)
@@ -72,6 +80,23 @@ main = do
     Right (lst,rem) -> do 
       putStrLn (concatMap (\(x,y) -> show x ++ ":" ++ pformat y) lst)
       putStrLn (concatMap pformat rem)
+  putStrLn "==============="
+  case matchPtl4Cross testCross fstev of
+    Left str -> putStrLn str
+    Right (lst1,lst2,lst3) -> do 
+      putStrLn (concatMap (\(x,y) -> show x ++ ":" ++ pformat y) lst1)
+      putStrLn (concatMap (\(x,y) -> show x ++ ":" ++ pformat y) lst2)
+      putStrLn (concatMap pformat lst3)
+  
+  let GDecay (x,xs) = testDecay 
+
+  case matchPtl4Decay (x,xs) fstev of
+    Left str -> putStrLn str
+    Right (lst1,lst2,lst3) -> do 
+      putStrLn (concatMap (\(x,y) -> show x ++ ":" ++ pformat y) lst1)
+      putStrLn (concatMap (\(x,y) -> show x ++ ":" ++ pformat y) lst2)
+      putStrLn (concatMap pformat lst3)
+
 
 
  where iter = EL.foldM (\lst a -> maybe (return lst) 
