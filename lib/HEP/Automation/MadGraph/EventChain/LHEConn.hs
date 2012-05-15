@@ -9,6 +9,53 @@ import qualified Numeric.LinearAlgebra as NL
 import HEP.Util.Functions
 import Data.Vector.Storable ((!))
 
+import HEP.Automation.MadGraph.EventChain.Type 
+
+-- | 
+
+-- data DecayNodePair = DNodeId (PtlID,PDGID)
+
+-- | 
+
+-- | 
+
+-- type TaggedDecayNode = Either DecayNode DecayNodePair
+
+-- | 
+
+type Status = Int
+
+-- | 
+
+findPtlIDStatus :: (PDGID,Status) -> [PtlInfo] -> (Maybe PtlInfo,[PtlInfo]) 
+findPtlIDStatus (pdgid,st) pinfos = foldr f (Nothing,[]) pinfos 
+  where f pinfo (Just r, rs) = (Just r,(pinfo:rs))
+        f pinfo (Nothing, rs) = if (pdgid == idup pinfo) && (st == istup pinfo)
+                                  then (Just pinfo,rs)
+                                  else (Nothing,pinfo:rs)
+
+
+-- | 
+
+allFindPtlIDStatus :: [(ParticleID,PDGID,Status)] -> [PtlInfo] 
+                      -> Either String ([(ParticleID,PtlInfo)],[PtlInfo])
+allFindPtlIDStatus ls pinfos = foldr f (Right ([],pinfos)) ls
+  where f _ (Left str) = Left str 
+        f (pid,pdgid,status) (Right (done,remaining)) = 
+          case findPtlIDStatus (pdgid,status) remaining of
+            (Nothing,_) -> Left ((show pdgid) ++ "," ++ (show status) ++ " cannot be found.")
+            (Just pinfo,remaining') -> Right ((pid,pinfo):done,remaining')
+
+-- | 
+
+{-
+matchPtl4Cross :: GCross ProcessNode DecayNode TerminalNode -> LHEvent
+                  -> ([ParticleID,PtlInfo],[ParticleID,PtlInfo])
+matchPtl4Cross (GCross inc out xpr) = 
+  -}
+
+
+
 
 -- | 
 
@@ -113,10 +160,6 @@ interwine2 (LHEvent einfo1 pinfos1) (LHEvent einfo2 pinfos2) =
       numptls = length npinfos
       neinfo = einfo1 { nup = numptls }
   in LHEvent neinfo npinfos 
-
--- |
-
-endl = "\n"
 
 -- |
 
