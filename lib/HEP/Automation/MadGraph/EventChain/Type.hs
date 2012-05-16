@@ -6,14 +6,27 @@ import qualified Data.IntMap as M
 -- import qualified Data.Map as M
 import Data.List
 
+-- | Terminal Node 
 
-data GDecayTop dnode tnode a = GDecay (dnode a,[GDecayTop dnode tnode a])
-                             | GTerminal (tnode a)
+data TNode a = TNode a 
 
-data GCross xnode dnode tnode a = 
-    GCross { incomingG :: [GDecayTop dnode tnode a] 
-           , outgoingG :: [GDecayTop dnode tnode a] 
-           , xprocG :: xnode } 
+-- | Decay Node
+
+data DNode a b = DNode a b -- ProcessID
+
+
+-- | Cross Node
+
+data XNode b = XNode b -- ProcessID
+
+
+data GDecayTop dnode tnode a b = GDecay (dnode a b, [GDecayTop dnode tnode a b])
+                               | GTerminal (tnode a)
+
+data GCross xnode dnode tnode a b = 
+    GCross { incomingG :: [GDecayTop dnode tnode a b] 
+           , outgoingG :: [GDecayTop dnode tnode a b]  
+           , xprocG :: xnode b } 
 
 -- | 
 
@@ -27,28 +40,14 @@ type ParticleID = Int
 
 type EventMap = M.IntMap LHEvent 
 
-data ProcessInfo = ProcessInfo { name :: String }
-
--- | Terminal Node 
-
-data TNode a = TNode a 
-
--- | Decay Node
-
-data DNode a = DNode a ProcessID
-
-
--- | Cross Node
-
-data XNode = XNode ProcessID
 
 -- | 
 
-type DecayID = GDecayTop DNode TNode (ParticleID,PDGID)
+type DecayID = GDecayTop DNode TNode (ParticleID,PDGID) ProcessID
 
 -- | 
 
-type CrossID = GCross XNode DNode TNode (ParticleID,PDGID)
+type CrossID = GCross XNode DNode TNode (ParticleID,PDGID) ProcessID
 
 -- | 
 
@@ -60,22 +59,22 @@ data MatchedLHEvent = MLHEvent { mlhev_einfo :: EventInfo
 
 -- |
 
-getContent :: GDecayTop DNode TNode a -> a
+getContent :: GDecayTop DNode TNode a b -> a
 getContent (GTerminal (TNode x)) = x
 getContent (GDecay (DNode x _,_)) = x
 
 -- | 
 
-getProcessIDFromDecayTop :: GDecayTop DNode TNode a -> [ProcessID]
-getProcessIDFromDecayTop (GTerminal _) = []
-getProcessIDFromDecayTop (GDecay (DNode _ p1,ds)) = p1 : concatMap getProcessIDFromDecayTop ds 
+getProcessFromDecayTop :: GDecayTop DNode TNode a b -> [b]
+getProcessFromDecayTop (GTerminal _) = []
+getProcessFromDecayTop (GDecay (DNode _ p1,ds)) = p1 : concatMap getProcessFromDecayTop ds 
  
 -- | 
 
-getProcessIDFromCross :: GCross XNode DNode TNode a -> [ProcessID]
-getProcessIDFromCross (GCross inc out (XNode pid)) = 
-    pid : concatMap getProcessIDFromDecayTop inc 
-    ++ concatMap getProcessIDFromDecayTop out 
+getProcessFromCross :: GCross XNode DNode TNode a b -> [b]
+getProcessFromCross (GCross inc out (XNode p)) = 
+    p : concatMap getProcessFromDecayTop inc 
+    ++ concatMap getProcessFromDecayTop out 
 
 
 
@@ -83,7 +82,7 @@ endl :: String
 endl = "\n"
 
 
-printCrossStr :: GCross XNode DNode TNode (ParticleID,PDGID) -> String 
+printCrossStr :: CrossID -> String 
 printCrossStr (GCross inc out xprocg) = 
     "main process = " ++ show pid ++ endl
      ++ intercalate endl (map printDecay inc) ++ endl
@@ -94,7 +93,7 @@ printCrossStr (GCross inc out xprocg) =
   where XNode pid = xprocg  
 
 
-printDecay :: GDecayTop DNode TNode (ParticleID,PDGID) -> String
+printDecay :: DecayID -> String
 printDecay (GTerminal (TNode tid)) = "terminal = " ++ show tid
 printDecay (GDecay (DNode pdgid procid, gdecays)) = 
     "decay = ( " ++ show pdgid ++ ", " ++ show procid  ++ ", ["

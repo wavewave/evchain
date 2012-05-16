@@ -52,49 +52,61 @@ allFindPtlIDStatus ls pinfos = foldr f (Right ([],pinfos)) ls
 
 -- | 
 
-mkIDTriple :: Status -> GDecayTop DNode TNode (ParticleID,PDGID) -> (ParticleID,PDGID,Status)
+mkIDTriple :: Status 
+           -> DecayID -- GDecayTop DNode TNode (ParticleID,PDGID) 
+           -> (ParticleID,PDGID,Status)
 mkIDTriple st x = let (pid,pdgid) = getContent x in (pid,pdgid,st)
 
 -- | 
 
 matchInOut :: ([(ParticleID,PDGID,Status)],[(ParticleID,PDGID,Status)]) 
-              -> LHEvent 
-              -> Either String ([(ParticleID,PtlInfo)],[(ParticleID,PtlInfo)],[PtlInfo])
-matchInOut (incids,outids) (LHEvent _ pinfos) = do 
+           -> LHEvent 
+           -> Either String MatchedLHEvent
+              -- ([(ParticleID,PtlInfo)],[(ParticleID,PtlInfo)],[PtlInfo])
+matchInOut (incids,outids) (LHEvent einfo pinfos) = do 
     (matchinc,remaining) <- allFindPtlIDStatus incids pinfos 
     (matchout,remaining') <- allFindPtlIDStatus outids remaining
-    return (matchinc,matchout,remaining')
+    return (MLHEvent einfo matchinc matchout remaining')
 
 -- | 
 
-matchPtl4Cross :: GCross XNode DNode TNode (ParticleID,PDGID)
-                  -> LHEvent
-                  -> Either String ([(ParticleID,PtlInfo)],[(ParticleID,PtlInfo)],[PtlInfo])
+matchPtl4Cross :: CrossID -- GCross XNode DNode TNode (ParticleID,PDGID)
+               -> LHEvent
+               -> Either String MatchedLHEvent 
 matchPtl4Cross (GCross inc out xpr) lhe = matchInOut (incids,outids) lhe
   where incids = map (mkIDTriple (-1)) inc
         outids = map (mkIDTriple 1) out
 
 -- | 
 
-matchPtl4Decay :: (DNode (ParticleID,PDGID), [GDecayTop DNode TNode (ParticleID,PDGID)])
-                  -> LHEvent
-                  -> Either String ([(ParticleID,PtlInfo)],[(ParticleID,PtlInfo)],[PtlInfo])
+matchPtl4Decay :: (DNode (ParticleID,PDGID) ProcessID, [DecayID])
+               -- [GDecayTop DNode TNode (ParticleID,PDGID)]
+               -> LHEvent
+               -> Either String MatchedLHEvent
 matchPtl4Decay (inc,out) lhe = matchInOut (incids,outids) lhe 
   where incids = case inc of 
                    DNode (x,y) _ -> [(x,y,-1)]
         outids = map (mkIDTriple 1) out 
   
 -- | 
+{- 
 
+matchFullDecay :: GDecayTop DNode TNode (ParticleID,PDGID)
+               -> M.IntMap LHEvent
+               -> Either String (GDecayTop DNode TNode MatchedLHEvent)
+matchFullDecay (GTerminal (TNode x)) _ = return (GTerminal (TNode (TerminalParticle))
+
+-}  
+
+-- | 
+{-
 matchFullCross :: GCross XNode DNode TNode (ParticleID,PDGID) 
                -> M.IntMap LHEvent
-               -> Maybe [LHEvent]
-
--- Either String [([(ParticleID,PtlInfo),[(ParticleID,PtlInfo)],[PtlInfo])]
+               -> Either String (GCross XNode DNode TNode MatchedLHEvent)
 matchFullCross g@(GCross inc out proc) m =
     mapM (\x -> M.lookup x m) ps 
   where ps = getProcessIDFromCross g 
-
+-}
 
 
 -- | 

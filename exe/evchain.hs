@@ -32,7 +32,7 @@ zipWithM3 f xs ys zs = sequence (zipWith3 f xs ys zs)
 
 
 
-testCross :: GCross XNode DNode TNode (ParticleID,PDGID)
+testCross :: CrossID -- GCross XNode DNode TNode (ParticleID,PDGID)
 testCross = GCross incoms outgos (XNode 1) 
 
 incoms = [ GTerminal (TNode (1,21)) 
@@ -55,18 +55,18 @@ outgos2 = [ GTerminal (TNode (1,-1))
 
 testCross3 = GCross incoms outgos2 (XNode 1)
 
-testDecay :: GDecayTop DNode TNode (ParticleID,PDGID)
+testDecay :: DecayID -- GDecayTop DNode TNode (ParticleID,PDGID)
 testDecay = GDecay (DNode (1,1000022) 33, [ (GTerminal (TNode (1,-2)))
                                           , (GTerminal (TNode (2,-1)))
                                           , (GTerminal (TNode (3,-1)))
                                           , (GTerminal (TNode (4,9000202))) ])
 
-testDecay2 :: GDecayTop DNode TNode (ParticleID,PDGID)
+testDecay2 :: DecayID -- GDecayTop DNode TNode (ParticleID,PDGID)
 testDecay2 = GDecay (DNode (1,3999) 12, [ (GTerminal (TNode (1,33)))
                                         , testDecay ])
 
 
-testCross2 :: GCross XNode DNode TNode (ParticleID,PDGID)
+testCross2 :: CrossID -- GCross XNode DNode TNode (ParticleID,PDGID)
 testCross2 = GCross incoms [ GTerminal (TNode (1,-1))
                            , testDecay2 ] 
                     (XNode 399)
@@ -111,7 +111,7 @@ main = do
   putStrLn "==============="
   case matchPtl4Cross testCross fstev of
     Left str -> putStrLn str
-    Right (lst1,lst2,lst3) -> do 
+    Right (MLHEvent _ lst1 lst2 lst3) -> do 
       putStrLn (concatMap (\(x,y) -> show x ++ ":" ++ pformat y) lst1)
       putStrLn (concatMap (\(x,y) -> show x ++ ":" ++ pformat y) lst2)
       putStrLn (concatMap pformat lst3)
@@ -120,18 +120,18 @@ main = do
 
   case matchPtl4Decay (x,xs) fstev of
     Left str -> putStrLn str
-    Right (lst1,lst2,lst3) -> do 
+    Right (MLHEvent _ lst1 lst2 lst3) -> do 
       putStrLn (concatMap (\(x,y) -> show x ++ ":" ++ pformat y) lst1)
       putStrLn (concatMap (\(x,y) -> show x ++ ":" ++ pformat y) lst2)
       putStrLn (concatMap pformat lst3)
   putStrLn "=====" 
-  -- putStrLn $ show (getProcessIDFromDecayTop testDecay2)
-  putStrLn $ show (getProcessIDFromCross testCross3)
-  let tmpmap = M.fromList [(1,fstev),(33,fstev2)]
+  -- putStrLn $ show (getProcessFromDecayTop testDecay2)
+  putStrLn $ show (getProcessFromCross testCross3)
+{-  let tmpmap = M.fromList [(1,fstev),(33,fstev2)]
       rmatch = matchFullCross testCross3 tmpmap 
   case rmatch of
     Nothing -> putStrLn "no such event"
-    Just lst -> putStrLn $ intercalate "\n" (map lheFormatOutput lst)
+    Just lst -> putStrLn $ intercalate "\n" (map lheFormatOutput lst) -}
  where iter = EL.foldM (\lst a -> maybe (return lst) 
                                          (\(n,x) -> return (a:lst) ) a)
                        []
