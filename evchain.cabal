@@ -31,7 +31,8 @@ Library
                    HEPUtil, 
                    enumerator, 
                    vector, 
-                   hmatrix
+                   hmatrix, 
+                   pointed 
                    
   Exposed-Modules: 
                    HEP.Automation.MadGraph.EventChain.ProgType

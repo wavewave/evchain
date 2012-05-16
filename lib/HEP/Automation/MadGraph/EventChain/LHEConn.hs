@@ -89,14 +89,14 @@ matchPtl4Decay (inc,out) lhe = matchInOut (incids,outids) lhe
         outids = map (mkIDTriple 1) out 
   
 -- | 
-{- 
 
-matchFullDecay :: GDecayTop DNode TNode (ParticleID,PDGID)
+{-
+matchFullDecay :: DecayID
                -> M.IntMap LHEvent
-               -> Either String (GDecayTop DNode TNode MatchedLHEvent)
+               -> Either String DecayFull
 matchFullDecay (GTerminal (TNode x)) _ = return (GTerminal (TNode (TerminalParticle))
-
--}  
+-}
+  
 
 -- | 
 {-
