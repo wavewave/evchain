@@ -50,12 +50,33 @@ type DecayID = GDecayTop DNode TNode (ParticleID,PDGID)
 
 type CrossID = GCross XNode DNode TNode (ParticleID,PDGID)
 
--- (ParticleID,PDGID)
+-- | 
 
+data MatchedLHEvent = MLHEvent { mlhev_einfo :: EventInfo
+                               , mlhev_incoming :: [(ParticleID,PtlInfo)]
+                               , mlhev_outgoing :: [(ParticleID,PtlInfo)]
+                               , mlhev_intermediate :: [PtlInfo] } 
+
+
+-- |
 
 getContent :: GDecayTop DNode TNode a -> a
 getContent (GTerminal (TNode x)) = x
 getContent (GDecay (DNode x _,_)) = x
+
+-- | 
+
+getProcessIDFromDecayTop :: GDecayTop DNode TNode a -> [ProcessID]
+getProcessIDFromDecayTop (GTerminal _) = []
+getProcessIDFromDecayTop (GDecay (DNode _ p1,ds)) = p1 : concatMap getProcessIDFromDecayTop ds 
+ 
+-- | 
+
+getProcessIDFromCross :: GCross XNode DNode TNode a -> [ProcessID]
+getProcessIDFromCross (GCross inc out (XNode pid)) = 
+    pid : concatMap getProcessIDFromDecayTop inc 
+    ++ concatMap getProcessIDFromDecayTop out 
+
 
 
 endl :: String 
@@ -81,25 +102,5 @@ printDecay (GDecay (DNode pdgid procid, gdecays)) =
     ++ "]"
     ++ ")"
 
-
-
-{-
-type ParticleId = Int
-
-
-type ParticleMap = Map ParticleId PDGID
-
-data ProcessChain = ProcessChain { mainChain :: MainInfo
-                                 , decayChains :: [DecayInfo] } 
-
-data MainInfo = MainInfo { incoming :: [ParticleId] 
-                         , outgoing :: [ParticleId] }
-
-data DecayInfo = DecayInfo { mother :: ParticleId 
-                           , daughters :: [ParticleId] 
-                           , decayproc :: ProcessId 
-                           , branchratio :: Double } 
-
--}
 
 

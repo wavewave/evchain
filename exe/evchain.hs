@@ -2,6 +2,8 @@ module Main where
 
 import System.Console.CmdArgs
 
+import Data.List 
+import qualified Data.IntMap as M
 
 import HEP.Parser.LHEParser.DecayTop
 import HEP.Automation.EventAnalysis.FileDriver 
@@ -43,24 +45,50 @@ outgos = [ GTerminal (TNode (1,-1))
          , GTerminal (TNode (5,1))
          , GTerminal (TNode (6,1000022)) ] 
 
+outgos2 = [ GTerminal (TNode (1,-1))
+          , GTerminal (TNode (2,1))
+          , GTerminal (TNode (3,1000022))
+          , GTerminal (TNode (4,-1))
+          , GTerminal (TNode (5,1))
+          , testDecay ]
+
+
+testCross3 = GCross incoms outgos2 (XNode 1)
+
 testDecay :: GDecayTop DNode TNode (ParticleID,PDGID)
 testDecay = GDecay (DNode (1,1000022) 33, [ (GTerminal (TNode (1,-2)))
                                           , (GTerminal (TNode (2,-1)))
                                           , (GTerminal (TNode (3,-1)))
                                           , (GTerminal (TNode (4,9000202))) ])
 
+testDecay2 :: GDecayTop DNode TNode (ParticleID,PDGID)
+testDecay2 = GDecay (DNode (1,3999) 12, [ (GTerminal (TNode (1,33)))
+                                        , testDecay ])
+
+
+testCross2 :: GCross XNode DNode TNode (ParticleID,PDGID)
+testCross2 = GCross incoms [ GTerminal (TNode (1,-1))
+                           , testDecay2 ] 
+                    (XNode 399)
+
 -- | 
 
 main :: IO () 
 main = do 
-  let lhefile = "test2.lhe.gz"
+  let lhefile1 = "test.lhe.gz"
+      lhefile2 = "test2.lhe.gz"
   -- putStrLn (printCrossStr testCross)
   -- startMine "test.lhe.gz" "test2.lhe.gz" "test3.lhe.gz"
   --           "testoutput.dat"
   ((_,_,lst1),_) <- processFile 
                       (lheventIter $ zipStreamWithList [1..] =$ iter )
-                      lhefile       
+                      lhefile1       
+  ((_,_,lst2),_) <- processFile 
+                      (lheventIter $ zipStreamWithList [1..] =$ iter )
+                      lhefile2      
+
   let Just (_, Just (fstev,_,_)) = head lst1 
+      Just (_, Just (fstev2,_,_)) = head lst2
       LHEvent einfo pinfos = fstev
   putStrLn $ lheFormatOutput fstev
   -- let (Just pinfo1, pinfos') = (findPtlIDStatus (1000021,2) pinfos)
@@ -96,9 +124,14 @@ main = do
       putStrLn (concatMap (\(x,y) -> show x ++ ":" ++ pformat y) lst1)
       putStrLn (concatMap (\(x,y) -> show x ++ ":" ++ pformat y) lst2)
       putStrLn (concatMap pformat lst3)
-
-
-
+  putStrLn "=====" 
+  -- putStrLn $ show (getProcessIDFromDecayTop testDecay2)
+  putStrLn $ show (getProcessIDFromCross testCross3)
+  let tmpmap = M.fromList [(1,fstev),(33,fstev2)]
+      rmatch = matchFullCross testCross3 tmpmap 
+  case rmatch of
+    Nothing -> putStrLn "no such event"
+    Just lst -> putStrLn $ intercalate "\n" (map lheFormatOutput lst)
  where iter = EL.foldM (\lst a -> maybe (return lst) 
                                          (\(n,x) -> return (a:lst) ) a)
                        []
@@ -133,13 +166,3 @@ startMine lhefile lhefile2 lhefile3 outfile =
                                        (\(n,x) -> return (a:lst) ) a) 
                           []
 
-
-{-
-main :: IO () 
-main = do 
-  putStrLn "evchain"
-  param <- cmdArgs mode
-
-  commandLineProcess param
-
--}

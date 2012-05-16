@@ -11,6 +11,8 @@ import HEP.Util.Functions
 import Data.Vector.Storable ((!))
 
 import HEP.Automation.MadGraph.EventChain.Type 
+import qualified Data.IntMap as M
+
 
 -- | 
 
@@ -82,7 +84,16 @@ matchPtl4Decay (inc,out) lhe = matchInOut (incids,outids) lhe
                    DNode (x,y) _ -> [(x,y,-1)]
         outids = map (mkIDTriple 1) out 
   
+-- | 
 
+matchFullCross :: GCross XNode DNode TNode (ParticleID,PDGID) 
+               -> M.IntMap LHEvent
+               -> Maybe [LHEvent]
+
+-- Either String [([(ParticleID,PtlInfo),[(ParticleID,PtlInfo)],[PtlInfo])]
+matchFullCross g@(GCross inc out proc) m =
+    mapM (\x -> M.lookup x m) ps 
+  where ps = getProcessIDFromCross g 
 
 
 
