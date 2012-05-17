@@ -96,8 +96,8 @@ testDecay_go1 = GDecay (DNode (3,1000021) 2, [ GTerminal (TNode (1,-1))
                                              , GTerminal (TNode (2,1))
                                              , testDecay_n11 ])
 
-testDecay_go2 = GDecay (DNode (4,1000021) 3, [ GTerminal (TNode (1,-2))
-                                             , GTerminal (TNode (2,2))
+testDecay_go2 = GDecay (DNode (4,1000021) 3, [ GTerminal (TNode (1,-1))
+                                             , GTerminal (TNode (2,1))
                                              , testDecay_n12 ])
 
 testDecay_n11 :: DecayID 
@@ -118,17 +118,24 @@ testDecay_n12 = GDecay (DNode (4,1000022) 5, [ (GTerminal (TNode (1,-2)))
 
 main :: IO () 
 main = do 
-  let lhefile1 = "godbardn1.lhe.gz" -- "test.lhe.gz"
-      lhefile2 = "test2.lhe.gz"
+  let lhefile1 = "gogo.lhe.gz"
+      lhefile2 = "godbardn1.lhe.gz" -- "test.lhe.gz"
+      lhefile3 = "n1uddx.lhe.gz"
   ((_,_,lst1),_) <- processFile 
                       (lheventIter $ zipStreamWithList [1..] =$ iter )
                       lhefile1       
   ((_,_,lst2),_) <- processFile 
                       (lheventIter $ zipStreamWithList [1..] =$ iter )
                       lhefile2      
+  ((_,_,lst3),_) <- processFile 
+                      (lheventIter $ zipStreamWithList [1..] =$ iter )
+                      lhefile3       
+
+
 
   let Just (_, Just (fstev,_,_)) = head lst1 
       Just (_, Just (fstev2,_,_)) = head lst2
+      Just (_, Just (fstev3,_,_)) = head lst3
       LHEvent einfo pinfos = fstev
   putStrLn $ lheFormatOutput fstev
   putStrLn "=====" 
@@ -138,8 +145,8 @@ main = do
   -- putStrLn $ show (getProcessFromCross2 testCross4) 
 
 
-  let tmpmap = M.fromList [(1,fstev),(33,fstev2)]
-      rmatch = matchFullCross tmpmap testCross4 
+  let tmpmap = M.fromList [(1,fstev),(2,fstev2),(3,fstev2),(4,fstev3),(5,fstev3)]
+      rmatch = matchFullCross tmpmap testCross5
   case rmatch of
     Left err-> putStrLn err
     Right fcross -> do 

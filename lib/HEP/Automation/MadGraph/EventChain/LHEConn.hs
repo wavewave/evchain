@@ -150,14 +150,22 @@ getPtlInfosFromCMLHEvent (f,g) (CMLHEvent u c) mm = (map snd inc,map snd out,int
 
 -- | 
 
+insertAll :: [(Int,PtlInfo)] -> IM.IntMap PtlInfo -> IM.IntMap PtlInfo
+insertAll lst m = foldr f m lst where f (k,a) m = IM.insert k a m
+
+-- | 
+
 accumTotalEvent :: CrossFull -> IO [PtlInfo]
-accumTotalEvent g = do (_,_,result,_) <- execStateT (traverse action g) (0,0,[],M.empty :: ParticleCoordMap) 
-                       let sortedResult = sortBy (compare `on` ptlid) result
+accumTotalEvent g = do (_,_,result,_) <- execStateT (traverse action g) 
+                                                    (0,0, IM.empty :: IM.IntMap PtlInfo
+                                                        , M.empty :: ParticleCoordMap ) 
+                       let result' = IM.elems result
+                       let sortedResult = sortBy (compare `on` ptlid) result'
                        putStrLn "============!!!=============="
                       
                        putStrLn $ pformats sortedResult
                        
-                       return sortedResult
+                       return sortedResult 
   where action cmlhev = do 
           let pinfos = getPInfos . mlhev_orig . current $ cmlhev
               ptlids = map ptlid pinfos
@@ -166,38 +174,43 @@ accumTotalEvent g = do (_,_,result,_) <- execStateT (traverse action g) (0,0,[],
               maxid = maximum ptlids 
               maxicol = maximum icols
               minicol = minimum icols 
-          (stid,stcol,rlst,stmm) <- get
+          (stid,stcol,rmap,stmm) <- get
           let idfunc = adjustIds (idChange stid) (colChange stcol)
 
-          momf <-case upper cmlhev of 
-                   Nothing -> return id
-                   Just (ev,(pid,pcode,opinfo)) -> liftIO $ do  
-                       putStrLn "Mother=" 
-                       putStrLn $ pformat opinfo  
-                       let rpinfo = (snd . head . mlhev_incoming . current ) cmlhev
-                       putStrLn $ pformat rpinfo 
-                       let oid = idChange stid (ptlid rpinfo)
-                           midadj = motherAdjustID oid (mlhev_procid ev,pid) stmm
-                       return $ (adjustMomSpin (opinfo,rpinfo) . midadj)
-                                                     
-                       -- momfunc = adjustIdMomSpin (n1,rn1) . adjustFirst (ptlid n1) $ npinfos2' 
-
+          (momf,rmap1) <- case upper cmlhev of 
+            Nothing -> return (id,rmap)
+            Just (ev,(pid,pcode,opinfo)) -> liftIO $ do  
+              putStrLn "Mother=" 
+              putStrLn $ pformat opinfo  
+              let rpinfo = (snd . head . mlhev_incoming . current ) cmlhev
+              putStrLn $ pformat rpinfo 
+              let oid = idChange stid (ptlid rpinfo)
+                  nid = case M.lookup (mlhev_procid ev,pid) stmm of
+                          Nothing -> error " herehere " 
+                          Just n -> n 
+                  rmap1 = rmap 
+                  midadj = motherAdjustID (oid,nid) 
+              return $ (adjustMomSpin (opinfo,rpinfo) . midadj , rmap1)
           let (ri,ro,rm,stmm') = getPtlInfosFromCMLHEvent (momf.idfunc,snd) cmlhev stmm
-              rlst' = rlst ++ maybe ri (const []) (upper cmlhev) ++ ro ++ rm  
+              kri = map ((,) <$> ptlid <*> id) ri
+              kro = map ((,) <$> ptlid <*> id) ro
+              krm = map ((,) <$> ptlid <*> id) rm 
+              rmap2 = maybe (insertAll kri rmap1) (const rmap1) (upper cmlhev)
+              rmap3 = insertAll kro rmap2
+
                        
           liftIO $ putStrLn (pformats ri) 
           liftIO $ putStrLn (pformats ro)
           liftIO $ putStrLn (pformats rm)
           liftIO $ putStrLn (show stmm')
+          liftIO $ putStrLn $ concat (IM.elems (fmap pformat rmap3 ))
           liftIO $ putStrLn "**"
-          put (maxid-1,stcol+maxicol-minicol+1,rlst',stmm')
+          put (maxid-1,stcol+maxicol-minicol+1,rmap3,stmm')
 
 -- | 
 
-motherAdjustID :: PtlID -> ParticleCoord -> ParticleCoordMap -> PtlInfo -> PtlInfo
-motherAdjustID oid pc pcm = idAdj f
-  where f = maybe id (\nid y -> if y == oid then nid else y)  (M.lookup pc pcm) 
-
+motherAdjustID :: (PtlID,PtlID) -> PtlInfo -> PtlInfo
+motherAdjustID (oid,nid) = idAdj (\y -> if y == oid then nid else y)
 
 
 -- | 
