@@ -1,18 +1,26 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module HEP.Automation.MadGraph.EventChain.LHEConn where 
 
-import HEP.Parser.LHEParser.Type
 import Data.Either
 import Data.List
-import Text.Printf
+import Data.Traversable 
+-- import Text.Printf
 import System.IO
 import qualified Data.Enumerator.List as EL
 import qualified Numeric.LinearAlgebra as NL
-import HEP.Util.Functions
 import Data.Vector.Storable ((!))
 
-import HEP.Automation.MadGraph.EventChain.Type 
 import qualified Data.IntMap as M
+import Control.Monad.State hiding (mapM)
 
+import HEP.Parser.LHEParser.Type
+import HEP.Util.Functions
+
+import HEP.Automation.MadGraph.EventChain.Type 
+import HEP.Automation.MadGraph.EventChain.Print
+
+import Prelude hiding (mapM)
 
 -- | 
 
@@ -90,29 +98,60 @@ matchPtl4Decay (inc,out) lhe = matchInOut (incids,outids) lhe
   
 -- | 
 
-{-
-matchFullDecay :: DecayID
-               -> M.IntMap LHEvent
+
+matchFullDecay :: M.IntMap LHEvent
+               -> DecayID
                -> Either String DecayFull
-matchFullDecay (GTerminal (TNode x)) _ = return (GTerminal (TNode (TerminalParticle))
--}
+matchFullDecay _ (GTerminal (TNode x)) = return (GTerminal (TNode x))
+matchFullDecay m (GDecay elem@(DNode x pid, ds)) = 
+   case r of 
+     Nothing -> Left $ show pid ++ " process doesn't exist"
+     Just lhe -> do 
+       mev <- matchPtl4Decay elem lhe
+       mds <- mapM (matchFullDecay m) ds
+       return (GDecay (DNode x mev, mds)) 
+  where r = M.lookup pid m 
   
 
 -- | 
-{-
-matchFullCross :: GCross XNode DNode TNode (ParticleID,PDGID) 
-               -> M.IntMap LHEvent
-               -> Either String (GCross XNode DNode TNode MatchedLHEvent)
-matchFullCross g@(GCross inc out proc) m =
-    mapM (\x -> M.lookup x m) ps 
-  where ps = getProcessIDFromCross g 
--}
+
+matchFullCross :: M.IntMap LHEvent
+               -> CrossID 
+               -> Either String CrossFull
+matchFullCross m g@(GCross inc out (XNode pid)) =
+    case r of 
+      Nothing -> Left $ show pid ++ " process doesn't exist"
+      Just lhe -> do 
+        (mev :: MatchedLHEvent) <- matchPtl4Cross g lhe
+        (mis :: [DecayFull]) <- mapM (matchFullDecay m) inc
+        (mos :: [DecayFull]) <- mapM (matchFullDecay m) out 
+        let result :: CrossFull
+            result = GCross mis mos (XNode mev)
+        return result -- (GCross mis mos (XNode mev))
+  where r = M.lookup pid m 
+
+
+-- | 
+
+countPtls :: CrossFull -> Int
+countPtls g = execState (traverse action g) 0  
+  where action x = 
+          modify (\y->y+length (mlhev_incoming x)+length (mlhev_outgoing x)+length (mlhev_intermediate x))
+
+
+-- | 
+
+accumLHEvent :: CrossFull -> [PtlInfo]
+accumLHEvent g = execState (traverse action g) [] 
+  where action x = 
+          modify (\acc->acc++(map snd (mlhev_incoming x))++(map snd (mlhev_outgoing x))++mlhev_intermediate x)
 
 
 -- | 
 
 getN1 :: [PtlInfo] -> ([PtlInfo],[PtlInfo])
 getN1 = break (\x -> idup x == 1000022 && istup x == 1)    
+
 
 -- | 
 
@@ -212,38 +251,4 @@ interwine2 (LHEvent einfo1 pinfos1) (LHEvent einfo2 pinfos2) =
       numptls = length npinfos
       neinfo = einfo1 { nup = numptls }
   in LHEvent neinfo npinfos 
-
--- |
-
-lheFormatOutput :: LHEvent -> String 
-lheFormatOutput (LHEvent einfo pinfos) =
-  "<event>" ++ endl 
-  ++ printf "%2d" (nup einfo) -- ++ "  " 
-  ++ printf "%4d" (idprup einfo) ++ " " 
-  ++ printf "%14.7E" (xwgtup einfo) ++ " " 
-  ++ printf "%14.7E" (scalup einfo) ++ " " 
-  ++ printf "%14.7E" (aqedup einfo) ++ " " 
-  ++ printf "%14.7E" (aqcdup einfo) ++ endl 
-  ++ concatMap pformat pinfos 
-  ++ "</event>" -- ++ endl
-
--- | 
-
-pformat :: PtlInfo -> String 
-pformat pinfo = 
-    printf "%9d" (idup  pinfo)
-    ++ printf "%5d" (istup pinfo)
-    ++ printf "%5d" (fst (mothup pinfo))
-    ++ printf "%5d" (snd (mothup pinfo))
-    ++ printf "%5d" (fst (icolup pinfo))
-    ++ printf "%5d" (snd (icolup pinfo))
-    ++ printf "%19.11E" pupx
-    ++ printf "%19.11E" pupy
-    ++ printf "%19.11E" pupz
-    ++ printf "%19.11E" pupt 
-    ++ printf "%19.11E" pupm 
-    ++ printf "%4.1f" (vtimup pinfo)
-    ++ printf "%5.1f" (spinup pinfo)
-    ++ endl 
-  where (pupx,pupy,pupz,pupt,pupm) = pup pinfo 
 

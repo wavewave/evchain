@@ -9,6 +9,8 @@ import qualified Data.IntMap as M
 import Data.List (intercalate)
 import Data.Copointed 
 import Data.Foldable
+import Data.Traversable
+import Control.Applicative
 
 import Prelude hiding (concatMap,foldr)
 
@@ -26,6 +28,12 @@ instance Functor (DNode a) where
 instance Copointed (DNode a) where
     copoint (DNode a b) = b
 
+instance Foldable (DNode a) where
+    foldr f acc (DNode a b) = f b acc
+
+instance Traversable (DNode a) where
+    traverse f (DNode a b)  = DNode a <$> f b 
+
 -- | Cross Node
 
 data XNode b = XNode b -- ProcessID
@@ -35,6 +43,12 @@ instance Functor XNode where
 
 instance Copointed XNode where
     copoint (XNode b) = b
+
+instance Foldable XNode where
+    foldr f acc (XNode b) = f b acc
+ 
+instance Traversable XNode where
+    traverse f (XNode b) = XNode <$> f b
 
 -- | 
 
@@ -49,11 +63,11 @@ instance (Copointed (d a)) => Foldable (GDecayTop d t a) where
     foldr f acc (GTerminal _) = acc 
     foldr f acc (GDecay (x,xs)) = f (copoint x) (foldr (flip (foldr f)) acc xs)   
 
-{-
-instance (Functor (d a), Copointed (d a)) => Traversable (GDecayTop d t a) where
-    traverse f (GTerminal x) = pure (GTerminal x)
-    traverse f (GDecay (x, xs)) = GDecay . (,)  <$> (fmap f x) 
--}
+
+instance (Traversable (d a), Copointed (d a)) => Traversable (GDecayTop d t a) where
+    traverse f (GTerminal x) = GTerminal <$> pure x
+    traverse f (GDecay (x, xs)) = GDecay <$> ( (,)  <$> traverse f x 
+                                                    <*> sequenceA (map (traverse f) xs) )
 
 -- | 
 
@@ -71,6 +85,10 @@ instance (Copointed (d a), Copointed x) => Foldable (GCross x d t a) where
           mout = foldr (flip (foldr f)) minc out
       in f (copoint proc) mout
 
+instance (Traversable (d a), Copointed (d a), Copointed x, Traversable x ) => Traversable (GCross x d t a) where
+    traverse f (GCross inc out proc) = GCross <$> sequenceA (map (traverse f) inc)
+                                              <*> sequenceA (map (traverse f) out)
+                                              <*> traverse f proc 
 
 
 -- | 
@@ -100,7 +118,7 @@ type DecayFull = GDecayTop DNode TNode (ParticleID,PDGID) MatchedLHEvent
 
 -- | 
 
-type CrossFull = GDecayTop DNode TNode (ParticleID,PDGID) MatchedLHEvent 
+type CrossFull = GCross XNode DNode TNode (ParticleID,PDGID) MatchedLHEvent 
 
 -- | 
 
@@ -130,29 +148,12 @@ getProcessFromCross (GCross inc out (XNode p)) =
     ++ concatMap getProcessFromDecayTop out 
 
 
+getProcessFromDecayTop2 :: GDecayTop DNode TNode a b -> [b] 
+getProcessFromDecayTop2 = foldr (:) [] 
+  -- where f x acc = x:acc 
 
-endl :: String 
-endl = "\n"
-
-
-printCrossStr :: CrossID -> String 
-printCrossStr (GCross inc out xprocg) = 
-    "main process = " ++ show pid ++ endl
-     ++ intercalate endl (map printDecay inc) ++ endl
-     ++ intercalate endl (map printDecay out) 
---      ++ "length inc = " ++ show (length inc) ++ endl
---      ++ "length out = " ++ show (length out)
-
-  where XNode pid = xprocg  
-
-
-printDecay :: DecayID -> String
-printDecay (GTerminal (TNode tid)) = "terminal = " ++ show tid
-printDecay (GDecay (DNode pdgid procid, gdecays)) = 
-    "decay = ( " ++ show pdgid ++ ", " ++ show procid  ++ ", ["
-    ++ intercalate "," (map printDecay gdecays)
-    ++ "]"
-    ++ ")"
+getProcessFromCross2 :: GCross XNode DNode TNode a b -> [b]
+getProcessFromCross2 = foldr (:) []
 
 
 

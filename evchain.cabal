@@ -18,7 +18,14 @@ Executable evchain
   ghc-prof-options: -caf-all -auto-all
   Build-Depends: 
                    base>4, mtl>2, directory, filepath,
-                   cmdargs, evchain
+                   cmdargs, 
+                   containers,
+                   enumerator,
+                   enumerator-util,
+                   HEPUtil,
+                   LHEParser,
+                   EventAnalysis,
+                   evchain
 
 Library
   hs-source-dirs: lib
@@ -32,7 +39,8 @@ Library
                    enumerator, 
                    vector, 
                    hmatrix, 
-                   pointed 
+                   pointed == 2.0.3.1, 
+                   containers
                    
   Exposed-Modules: 
                    HEP.Automation.MadGraph.EventChain.ProgType
@@ -40,6 +48,7 @@ Library
                    HEP.Automation.MadGraph.EventChain.Command
                    HEP.Automation.MadGraph.EventChain.LHEConn
                    HEP.Automation.MadGraph.EventChain.Type
+                   HEP.Automation.MadGraph.EventChain.Print
   Other-Modules: 
 
  

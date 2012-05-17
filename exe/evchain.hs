@@ -125,13 +125,18 @@ main = do
       putStrLn (concatMap (\(x,y) -> show x ++ ":" ++ pformat y) lst2)
       putStrLn (concatMap pformat lst3)
   putStrLn "=====" 
-  -- putStrLn $ show (getProcessFromDecayTop testDecay2)
-  putStrLn $ show (getProcessFromCross testCross3)
-{-  let tmpmap = M.fromList [(1,fstev),(33,fstev2)]
-      rmatch = matchFullCross testCross3 tmpmap 
+  -- putStrLn $ show (getProcessFromDecayTop2 testDecay2)
+  putStrLn $ show (getProcessFromCross2 testCross3)
+  let tmpmap = M.fromList [(1,fstev),(33,fstev2)]
+      rmatch = matchFullCross tmpmap testCross3 
   case rmatch of
-    Nothing -> putStrLn "no such event"
-    Just lst -> putStrLn $ intercalate "\n" (map lheFormatOutput lst) -}
+    Left err-> putStrLn err
+    Right fcross -> do 
+      putStrLn $ "number of particles = " ++ show (countPtls fcross)
+      putStrLn $ concatMap pformat (accumLHEvent fcross)
+
+
+-- putStrLn $ intercalate "\n" (map lheFormatOutput lst) 
  where iter = EL.foldM (\lst a -> maybe (return lst) 
                                          (\(n,x) -> return (a:lst) ) a)
                        []
