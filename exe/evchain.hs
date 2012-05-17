@@ -20,6 +20,7 @@ import qualified Data.Enumerator.List as EL
 
 import HEP.Automation.MadGraph.EventChain.Type
 import HEP.Automation.MadGraph.EventChain.LHEConn
+import HEP.Automation.MadGraph.EventChain.Print 
 
 
 -- | 
