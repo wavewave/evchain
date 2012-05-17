@@ -13,7 +13,7 @@ endl = "\n"
 -- | 
 
 printCrossStr :: CrossID -> String 
-printCrossStr (GCross inc out xprocg) = 
+printCrossStr (GCross xprocg inc out) = 
     "main process = " ++ show pid ++ endl
      ++ intercalate endl (map printDecay inc) ++ endl
      ++ intercalate endl (map printDecay out) 
@@ -49,7 +49,8 @@ lheFormatOutput (LHEvent einfo pinfos) =
 
 pformat :: PtlInfo -> String 
 pformat pinfo = 
-    printf "%9d" (idup  pinfo)
+    printf "{- %3d -}" (ptlid pinfo) 
+    ++ printf "%9d" (idup  pinfo)
     ++ printf "%5d" (istup pinfo)
     ++ printf "%5d" (fst (mothup pinfo))
     ++ printf "%5d" (snd (mothup pinfo))
@@ -65,3 +66,7 @@ pformat pinfo =
     ++ endl 
   where (pupx,pupy,pupz,pupt,pupm) = pup pinfo 
 
+-- | 
+
+pformats :: [PtlInfo] -> String
+pformats = concatMap pformat 

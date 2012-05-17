@@ -72,23 +72,24 @@ instance (Traversable (d a), Copointed (d a)) => Traversable (GDecayTop d t a) w
 -- | 
 
 data GCross xnode dnode tnode a b = 
-    GCross { incomingG :: [GDecayTop dnode tnode a b] 
+    GCross { xprogG :: xnode b 
+           , incomingG :: [GDecayTop dnode tnode a b] 
            , outgoingG :: [GDecayTop dnode tnode a b]  
-           , xprocG :: xnode b } 
+           } 
 
 instance (Functor (d a), Functor x) => Functor (GCross x d t a) where
-    fmap f (GCross inc out proc) = GCross (fmap (fmap f) inc) (fmap (fmap f) out) (fmap f proc)
+    fmap f (GCross proc inc out) = GCross (fmap f proc) (fmap (fmap f) inc) (fmap (fmap f) out) 
 
 instance (Copointed (d a), Copointed x) => Foldable (GCross x d t a) where
-    foldr f acc (GCross inc out proc) = 
+    foldr f acc (GCross proc inc out) = 
       let minc = foldr (flip (foldr f)) acc inc
           mout = foldr (flip (foldr f)) minc out
       in f (copoint proc) mout
 
 instance (Traversable (d a), Copointed (d a), Copointed x, Traversable x ) => Traversable (GCross x d t a) where
-    traverse f (GCross inc out proc) = GCross <$> sequenceA (map (traverse f) inc)
+    traverse f (GCross proc inc out) = GCross <$> traverse f proc 
+                                              <*> sequenceA (map (traverse f) inc)
                                               <*> sequenceA (map (traverse f) out)
-                                              <*> traverse f proc 
 
 
 -- | 
@@ -114,18 +115,33 @@ type CrossID = GCross XNode DNode TNode (ParticleID,PDGID) ProcessID
 
 -- | 
 
-type DecayFull = GDecayTop DNode TNode (ParticleID,PDGID) MatchedLHEvent
+type DecayFull = GDecayTop DNode TNode (ParticleID,PDGID) ContextMatchedLHEvent
 
 -- | 
 
-type CrossFull = GCross XNode DNode TNode (ParticleID,PDGID) MatchedLHEvent 
+type CrossFull = GCross XNode DNode TNode (ParticleID,PDGID) ContextMatchedLHEvent 
 
 -- | 
 
-data MatchedLHEvent = MLHEvent { mlhev_einfo :: EventInfo
+data MatchedLHEvent = MLHEvent { mlhev_procid :: ProcessID
+                               , mlhev_orig :: LHEvent 
+                               , mlhev_einfo :: EventInfo
                                , mlhev_incoming :: [(ParticleID,PtlInfo)]
                                , mlhev_outgoing :: [(ParticleID,PtlInfo)]
                                , mlhev_intermediate :: [PtlInfo] } 
+
+data ContextMatchedLHEvent = CMLHEvent { upper :: Maybe (MatchedLHEvent,(ParticleID,PDGID,PtlInfo)) -- ^ particle id is for current particle
+                                       , current :: MatchedLHEvent 
+                                       } 
+
+-- | 
+
+data AdjustCandidate = AC { ac_move :: PDGID -> PDGID } 
+
+-- | 
+
+getPInfos :: LHEvent -> [PtlInfo]
+getPInfos (LHEvent _ ps) = ps 
 
 
 -- |
@@ -143,7 +159,7 @@ getProcessFromDecayTop (GDecay (DNode _ p1,ds)) = p1 : concatMap getProcessFromD
 -- | 
 
 getProcessFromCross :: GCross XNode DNode TNode a b -> [b]
-getProcessFromCross (GCross inc out (XNode p)) = 
+getProcessFromCross (GCross (XNode p) inc out) = 
     p : concatMap getProcessFromDecayTop inc 
     ++ concatMap getProcessFromDecayTop out 
 
