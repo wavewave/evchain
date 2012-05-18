@@ -175,7 +175,10 @@ accumTotalEvent g = do (_,_,result,_) <- execStateT (traverse action g)
               maxicol = maximum icols
               minicol = minimum icols 
           (stid,stcol,rmap,stmm) <- get
-          let idfunc = adjustIds (idChange stid) (colChange stcol)
+          let mopinfo = fmap (\(_,(_,_,x))->x) (upper cmlhev)
+              rpinfo = (snd . head . mlhev_incoming . current ) cmlhev
+              (coloffset,colfunc) = colChangePair stcol (mopinfo,rpinfo) 
+          let idfunc = adjustIds (idChange stid) colfunc
 
           (momf,rmap1) <- case upper cmlhev of 
             Nothing -> return (id,rmap)
@@ -207,7 +210,7 @@ accumTotalEvent g = do (_,_,result,_) <- execStateT (traverse action g)
           liftIO $ putStrLn (show stmm')
           liftIO $ putStrLn $ concat (IM.elems (fmap pformat rmap4 ))
           liftIO $ putStrLn "**"
-          put (stid+maxid-1,stcol+maxicol-minicol+1,rmap4,stmm')
+          put (stid+maxid-1,stcol+maxicol-minicol+1-coloffset,rmap4,stmm')
 
 -- | 
 
@@ -263,11 +266,37 @@ getN1 = break (\x -> idup x == 1000022 && istup x == 1)
 idChange :: Int -> Int -> Int
 idChange r a = a + r
 
--- | 
+-- | obsolete
 
 colChange :: Int -> Int -> Int 
 colChange r 0 = 0 
 colChange r a = a + r 
+
+-- |
+
+colChangeFunc :: Int -> (Maybe PtlInfo,PtlInfo) -> Int -> Int 
+colChangeFunc offset (moptl,nptl) 0 = 0 
+colChangeFunc offset (Nothing,nptl) a =  if a == col1 || a == col2 then a else a + offset  
+  where (col1,col2) = icolup nptl 
+colChangeFunc offset (Just optl,nptl) a 
+  | a == col1 = fst (icolup optl)
+  | a == col2 = snd (icolup optl) 
+  | otherwise = a + offset 
+  where (col1,col2) = icolup nptl 
+
+
+-- | 
+
+colChangeOffset :: (Maybe PtlInfo,PtlInfo) -> Int 
+colChangeOffset (moptl,nptl) = let r | col1 /=0 && col2 /= 0 = 2
+                                     | col1 /=0 && col2 == 0 = 1 
+                                     | otherwise = 0 
+                               in r 
+  where (col1,col2) = icolup nptl 
+
+colChangePair :: Int -> (Maybe PtlInfo,PtlInfo) -> (Int, Int -> Int)
+colChangePair offset ptls = (colChangeOffset ptls, colChangeFunc offset ptls)
+
 
 -- | 
 
