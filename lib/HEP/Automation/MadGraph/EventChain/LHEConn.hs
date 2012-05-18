@@ -188,7 +188,8 @@ accumTotalEvent g = do (_,_,result,_) <- execStateT (traverse action g)
                   nid = case M.lookup (mlhev_procid ev,pid) stmm of
                           Nothing -> error " herehere " 
                           Just n -> n 
-                  rmap1 = rmap 
+                  unstabilize pinfo = pinfo { istup = 2 } 
+                  rmap1 = IM.adjust unstabilize nid rmap
                   midadj = motherAdjustID (oid,nid) 
               return $ (adjustMomSpin (opinfo,rpinfo) . midadj , rmap1)
           let (ri,ro,rm,stmm') = getPtlInfosFromCMLHEvent (momf.idfunc,snd) cmlhev stmm
@@ -197,15 +198,16 @@ accumTotalEvent g = do (_,_,result,_) <- execStateT (traverse action g)
               krm = map ((,) <$> ptlid <*> id) rm 
               rmap2 = maybe (insertAll kri rmap1) (const rmap1) (upper cmlhev)
               rmap3 = insertAll kro rmap2
+              rmap4 = insertAll krm rmap3 
 
                        
           liftIO $ putStrLn (pformats ri) 
           liftIO $ putStrLn (pformats ro)
           liftIO $ putStrLn (pformats rm)
           liftIO $ putStrLn (show stmm')
-          liftIO $ putStrLn $ concat (IM.elems (fmap pformat rmap3 ))
+          liftIO $ putStrLn $ concat (IM.elems (fmap pformat rmap4 ))
           liftIO $ putStrLn "**"
-          put (maxid-1,stcol+maxicol-minicol+1,rmap3,stmm')
+          put (stid+maxid-1,stcol+maxicol-minicol+1,rmap4,stmm')
 
 -- | 
 
