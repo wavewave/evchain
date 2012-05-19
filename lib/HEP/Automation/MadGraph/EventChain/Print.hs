@@ -49,8 +49,8 @@ lheFormatOutput (LHEvent einfo pinfos) =
 
 pformat :: PtlInfo -> String 
 pformat pinfo = 
-    printf "{- %3d -}" (ptlid pinfo) 
-    ++ printf "%9d" (idup  pinfo)
+    {- printf "{- %3d -}" (ptlid pinfo) ++ -} 
+    printf "%9d" (idup  pinfo)
     ++ printf "%5d" (istup pinfo)
     ++ printf "%5d" (fst (mothup pinfo))
     ++ printf "%5d" (snd (mothup pinfo))

@@ -49,6 +49,7 @@ Library
                    HEP.Automation.MadGraph.EventChain.LHEConn
                    HEP.Automation.MadGraph.EventChain.Type
                    HEP.Automation.MadGraph.EventChain.Print
+                   HEP.Automation.MadGraph.EventChain.Spec
   Other-Modules: 
 
  

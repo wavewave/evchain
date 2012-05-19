@@ -2,6 +2,8 @@ module Main where
 
 import System.Console.CmdArgs
 
+import Control.Applicative
+
 import Data.List 
 import qualified Data.IntMap as M
 import Data.Traversable (traverse)
@@ -22,7 +24,7 @@ import qualified Data.Enumerator.List as EL
 import HEP.Automation.MadGraph.EventChain.Type
 import HEP.Automation.MadGraph.EventChain.LHEConn
 import HEP.Automation.MadGraph.EventChain.Print 
-
+import HEP.Automation.MadGraph.EventChain.Spec
 
 -- | 
 
@@ -32,7 +34,95 @@ zipWithM3 f xs ys zs = sequence (zipWith3 f xs ys zs)
 
 -- | 
 
+zipWithM5 :: (Monad m) => (a -> b -> c -> d -> e -> m f) 
+          -> [a] -> [b] -> [c] -> [d] -> [e] -> m [f]
+zipWithM5 f x1s x2s x3s x4s x5s = sequence (zipWith5 f x1s x2s x3s x4s x5s)
 
+-- | 
+
+
+n1xlledecay1 = GDecay (DNode (3,1000022) 4, [ GTerminal (TNode (1,-11))
+                                            , GTerminal (TNode (2,11))
+                                            , GTerminal (TNode (3,-14))
+                                            , GTerminal (TNode (4,-9000201)) ])
+
+n1xlledecay2 = GDecay (DNode (3,1000022) 5, [ GTerminal (TNode (1,-11))
+                                            , GTerminal (TNode (2,11))
+                                            , GTerminal (TNode (3,-14))
+                                            , GTerminal (TNode (4,-9000201)) ])
+
+
+gouun1decay1 = GDecay (DNode (3,1000021) 2, [ GTerminal (TNode (1,2))
+                                            , GTerminal (TNode (2,-2))
+                                            , n1xlledecay1 ] )
+
+gouun1decay2 = GDecay (DNode (4,1000021) 3, [ GTerminal (TNode (1,2))
+                                            , GTerminal (TNode (2,-2))
+                                            , n1xlledecay2 ] )
+
+
+ppgogo = GCross (XNode 1) 
+                [ GTerminal (TNode (1,21)) 
+                , GTerminal (TNode (2,21)) ] 
+                [ gouun1decay1 
+                , gouun1decay2 ]
+
+
+-- |
+
+{-main :: IO () 
+main = do 
+  putStrLn "tes" -}
+
+
+workfunc5 (Just (_, Just (e1,_,_))) 
+          (Just (_, Just (e2,_,_))) 
+          (Just (_, Just (e3,_,_))) 
+          (Just (_, Just (e4,_,_))) 
+          (Just (_, Just (e5,_,_))) = do 
+    let tmpmap = M.fromList [(1,e1),(2,e2),(3,e3),(4,e4),(5,e5)]
+        rmatch = matchFullCross tmpmap ppgogo
+    case rmatch of
+      Left err-> putStrLn err
+      Right fcross -> do 
+        -- putStrLn $ "number of particles = " ++ show (countPtls fcross)
+        -- putStrLn $ concatMap pformat (accumLHEvent fcross)
+        -- putStrLn "---------------" 
+        -- putStrLn $ concatMap pformat (chainDecay fcross ) 
+        pinfos <- accumTotalEvent fcross 
+        putStrLn $ lheFormatOutput $ LHEvent (EvInfo 0 0 0 0 0 0) pinfos 
+        return ()
+
+-- | 
+
+main :: IO () 
+main = do 
+    let lhefile1 = "pp_gogo_events.lhe.gz"
+        lhefile2 = "go_uun1_run01_events.lhe.gz" -- "test.lhe.gz"
+        lhefile3 = "go_uun1_run02_events.lhe.gz"
+        lhefile4 = "n1_eevmsxxp_run01_events.lhe.gz"
+        lhefile5 = "n1_eevmsxxp_run02_events.lhe.gz"
+    lst1 <- proc lhefile1       
+    lst2 <- proc lhefile2 
+    lst3 <- proc lhefile3  
+    lst4 <- proc lhefile4
+    lst5 <- proc lhefile5
+
+    -- let f = (workfunc3 . combinefunc3) :: Int 
+    zipWithM5 workfunc5 lst1 lst2 lst3 lst4 lst5 
+    return ()
+  where iter = EL.foldM (\lst a -> maybe (return lst) 
+                                         (\(n,x) -> return (a:lst) ) a)
+
+                       []
+        proc lhe = do ((_,_,lst),_) <- processFile (lheventIter $ zipStreamWithList [1..] =$ iter ) lhe
+                      return lst 
+
+
+
+-- | 
+
+{-
 
 testCross :: CrossID
 testCross = GCross (XNode 1) incoms outgos  
@@ -53,10 +143,6 @@ outgos2 = [ GTerminal (TNode (1,-1))
           , GTerminal (TNode (4,-1))
           , GTerminal (TNode (5,1))
           , testDecay ]
-
-
-
-
 
 testDecay2 :: DecayID
 testDecay2 = GDecay (DNode (1,3999) 12, [ (GTerminal (TNode (1,33)))
@@ -112,27 +198,26 @@ testDecay_n12 = GDecay (DNode (4,1000022) 5, [ (GTerminal (TNode (1,-2)))
                                              , (GTerminal (TNode (3,-1)))
                                              , (GTerminal (TNode (4,9000202))) ])
 
+-}
 
+-- | 
+{-
+main :: IO ()
+main  = do
+  putStrLn "he"
+  let x = (3  :: Spec)
+  print x
+
+  let y = X (21,21,[1000021,1000021])
+  print y 
+  
+-}
 
 -- | 
 
-main :: IO () 
-main = do 
-  let lhefile1 = "gogo.lhe.gz"
-      lhefile2 = "godbardn1.lhe.gz" -- "test.lhe.gz"
-      lhefile3 = "n1uddx.lhe.gz"
-  ((_,_,lst1),_) <- processFile 
-                      (lheventIter $ zipStreamWithList [1..] =$ iter )
-                      lhefile1       
-  ((_,_,lst2),_) <- processFile 
-                      (lheventIter $ zipStreamWithList [1..] =$ iter )
-                      lhefile2      
-  ((_,_,lst3),_) <- processFile 
-                      (lheventIter $ zipStreamWithList [1..] =$ iter )
-                      lhefile3       
+-- combinefunc3 (Just (_, Just (e1,_,_))) (Just (_, Just (e2,_,_))) (Just (_, Just (e3,_,_))) = (e1,e2,e3)
 
-
-
+{-
   let Just (_, Just (fstev,_,_)) = head lst1 
       Just (_, Just (fstev2,_,_)) = head lst2
       Just (_, Just (fstev3,_,_)) = head lst3
@@ -156,9 +241,8 @@ main = do
       -- putStrLn $ concatMap pformat (chainDecay fcross ) 
       accumTotalEvent fcross 
       return ()
- where iter = EL.foldM (\lst a -> maybe (return lst) 
-                                         (\(n,x) -> return (a:lst) ) a)
-                       []
+-}
+
 
 {-  let r = allFindPtlIDStatus [ (1,-1,1)
                              , (2,1,1)

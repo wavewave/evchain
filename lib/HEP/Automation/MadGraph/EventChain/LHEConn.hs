@@ -161,10 +161,8 @@ accumTotalEvent g = do (_,_,result,_) <- execStateT (traverse action g)
                                                         , M.empty :: ParticleCoordMap ) 
                        let result' = IM.elems result
                        let sortedResult = sortBy (compare `on` ptlid) result'
-                       putStrLn "============!!!=============="
-                      
-                       putStrLn $ pformats sortedResult
-                       
+                       -- putStrLn "============!!!=============="
+                       -- putStrLn $ pformats sortedResult
                        return sortedResult 
   where action cmlhev = do 
           let pinfos = getPInfos . mlhev_orig . current $ cmlhev
@@ -183,10 +181,10 @@ accumTotalEvent g = do (_,_,result,_) <- execStateT (traverse action g)
           (momf,rmap1) <- case upper cmlhev of 
             Nothing -> return (id,rmap)
             Just (ev,(pid,pcode,opinfo)) -> liftIO $ do  
-              putStrLn "Mother=" 
-              putStrLn $ pformat opinfo  
+              -- putStrLn "Mother=" 
+              -- putStrLn $ pformat opinfo  
               let rpinfo = (snd . head . mlhev_incoming . current ) cmlhev
-              putStrLn $ pformat rpinfo 
+              -- putStrLn $ pformat rpinfo 
               let oid = idChange stid (ptlid rpinfo)
                   nid = case M.lookup (mlhev_procid ev,pid) stmm of
                           Nothing -> error " herehere " 
@@ -204,12 +202,12 @@ accumTotalEvent g = do (_,_,result,_) <- execStateT (traverse action g)
               rmap4 = insertAll krm rmap3 
 
                        
-          liftIO $ putStrLn (pformats ri) 
-          liftIO $ putStrLn (pformats ro)
-          liftIO $ putStrLn (pformats rm)
-          liftIO $ putStrLn (show stmm')
-          liftIO $ putStrLn $ concat (IM.elems (fmap pformat rmap4 ))
-          liftIO $ putStrLn "**"
+          -- liftIO $ putStrLn (pformats ri) 
+          -- liftIO $ putStrLn (pformats ro)
+          -- liftIO $ putStrLn (pformats rm)
+          -- liftIO $ putStrLn (show stmm')
+          -- liftIO $ putStrLn $ concat (IM.elems (fmap pformat rmap4 ))
+          -- liftIO $ putStrLn "**"
           put (stid+maxid-1,stcol+maxicol-minicol+1-coloffset,rmap4,stmm')
 
 -- | 
