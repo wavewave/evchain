@@ -40,40 +40,18 @@ zipWithM5 f x1s x2s x3s x4s x5s = sequence (zipWith5 f x1s x2s x3s x4s x5s)
 
 -- | 
 
+ppgogo = x 1 (21,21,[gouun1decay1,gouun1decay2])
 
-n1xlledecay1 = GDecay (DNode (3,1000022) 4, [ GTerminal (TNode (1,-11))
-                                            , GTerminal (TNode (2,11))
-                                            , GTerminal (TNode (3,-14))
-                                            , GTerminal (TNode (4,-9000201)) ])
+gouun1decay1 = d 2 (1000021,[2,-2,n1xlledecay1])
 
-n1xlledecay2 = GDecay (DNode (3,1000022) 5, [ GTerminal (TNode (1,-11))
-                                            , GTerminal (TNode (2,11))
-                                            , GTerminal (TNode (3,-14))
-                                            , GTerminal (TNode (4,-9000201)) ])
+gouun1decay2 = d 3 (1000021,[2,-2,n1xlledecay2])
 
+n1xlledecay1 = d 4 (1000022,[-11,11,-14,-9000201])
 
-gouun1decay1 = GDecay (DNode (3,1000021) 2, [ GTerminal (TNode (1,2))
-                                            , GTerminal (TNode (2,-2))
-                                            , n1xlledecay1 ] )
-
-gouun1decay2 = GDecay (DNode (4,1000021) 3, [ GTerminal (TNode (1,2))
-                                            , GTerminal (TNode (2,-2))
-                                            , n1xlledecay2 ] )
-
-
-ppgogo = GCross (XNode 1) 
-                [ GTerminal (TNode (1,21)) 
-                , GTerminal (TNode (2,21)) ] 
-                [ gouun1decay1 
-                , gouun1decay2 ]
+n1xlledecay2 = d 5 (1000022,[-11,11,-14,-9000201])
 
 
 -- |
-
-{-main :: IO () 
-main = do 
-  putStrLn "tes" -}
-
 
 workfunc5 (Just (_, Just (e1,_,_))) 
           (Just (_, Just (e2,_,_))) 
@@ -81,7 +59,7 @@ workfunc5 (Just (_, Just (e1,_,_)))
           (Just (_, Just (e4,_,_))) 
           (Just (_, Just (e5,_,_))) = do 
     let tmpmap = M.fromList [(1,e1),(2,e2),(3,e3),(4,e4),(5,e5)]
-        rmatch = matchFullCross tmpmap ppgogo
+        rmatch = matchFullCross tmpmap (makeCrossID ppgogo)
     case rmatch of
       Left err-> putStrLn err
       Right fcross -> do 
@@ -94,6 +72,28 @@ workfunc5 (Just (_, Just (e1,_,_)))
         return ()
 
 -- | 
+
+{-
+main :: IO ()
+main  = do
+  -- putStrLn "he"
+  -- let x = (3  :: Spec)
+  -- print x
+
+  -- let y = X (21,21,[1000021,1000021])
+  let top = x 1 (21,21,[d1,d2])
+      d1 = d 2 (1000021, [2,-2,1000022])
+      d2 = d 3 (1000021, [1,-1,1000022])
+
+  print top 
+
+  print $ makeCrossID top   
+-}
+
+-- | 
+
+
+-- |
 
 main :: IO () 
 main = do 
@@ -200,18 +200,6 @@ testDecay_n12 = GDecay (DNode (4,1000022) 5, [ (GTerminal (TNode (1,-2)))
 
 -}
 
--- | 
-{-
-main :: IO ()
-main  = do
-  putStrLn "he"
-  let x = (3  :: Spec)
-  print x
-
-  let y = X (21,21,[1000021,1000021])
-  print y 
-  
--}
 
 -- | 
 
@@ -305,3 +293,34 @@ startMine lhefile lhefile2 lhefile3 outfile =
                                        (\(n,x) -> return (a:lst) ) a) 
                           []
 
+{-
+
+
+n1xlledecay1 = GDecay (DNode (3,1000022) 4, [ GTerminal (TNode (1,-11))
+                                            , GTerminal (TNode (2,11))
+                                            , GTerminal (TNode (3,-14))
+                                            , GTerminal (TNode (4,-9000201)) ])
+
+n1xlledecay2 = GDecay (DNode (3,1000022) 5, [ GTerminal (TNode (1,-11))
+                                            , GTerminal (TNode (2,11))
+                                            , GTerminal (TNode (3,-14))
+                                            , GTerminal (TNode (4,-9000201)) ])
+
+
+gouun1decay1 = GDecay (DNode (3,1000021) 2, [ GTerminal (TNode (1,2))
+                                            , GTerminal (TNode (2,-2))
+                                            , n1xlledecay1 ] )
+
+gouun1decay2 = GDecay (DNode (4,1000021) 3, [ GTerminal (TNode (1,2))
+                                            , GTerminal (TNode (2,-2))
+                                            , n1xlledecay2 ] )
+
+
+ppgogo = GCross (XNode 1) 
+                [ GTerminal (TNode (1,21)) 
+                , GTerminal (TNode (2,21)) ] 
+                [ gouun1decay1 
+                , gouun1decay2 ]
+
+
+-}

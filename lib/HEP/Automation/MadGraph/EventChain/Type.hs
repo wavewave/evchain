@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances, FlexibleContexts, StandaloneDeriving #-}
 
 module HEP.Automation.MadGraph.EventChain.Type where
 
@@ -18,9 +18,19 @@ import Prelude hiding (concatMap,foldr)
 
 data TNode a = TNode a 
 
+deriving instance (Show a) => Show (TNode a)
+
+deriving instance (Eq a) => Eq (TNode a)
+
+-- deriving instance (Num a) => Num (TNode a)
+
 -- | Decay Node
 
 data DNode a b = DNode a b -- ProcessID
+
+deriving instance (Show a, Show b) => Show (DNode a b)
+
+deriving instance (Eq a, Eq b) => Eq (DNode a b)
 
 instance Functor (DNode a) where
     fmap f (DNode a b) = DNode a (f b) 
@@ -38,6 +48,10 @@ instance Traversable (DNode a) where
 
 data XNode b = XNode b -- ProcessID
 
+deriving instance (Show b) => Show (XNode b)
+
+deriving instance (Eq b) => Eq (XNode b)
+
 instance Functor XNode where
     fmap f (XNode b) = XNode (f b)
 
@@ -54,6 +68,10 @@ instance Traversable XNode where
 
 data GDecayTop dnode tnode a b = GDecay (dnode a b, [GDecayTop dnode tnode a b])
                                | GTerminal (tnode a)
+
+deriving instance (Show (dnode a b), Show (tnode a)) => Show (GDecayTop dnode tnode a b)
+
+deriving instance (Eq (dnode a b), Eq (tnode a)) => Eq (GDecayTop dnode tnode a b)
 
 instance (Functor (d a)) => Functor (GDecayTop d t a) where
     fmap f (GDecay (x, xs)) = GDecay (fmap f x, fmap (fmap f) xs)
@@ -76,6 +94,10 @@ data GCross xnode dnode tnode a b =
            , incomingG :: [GDecayTop dnode tnode a b] 
            , outgoingG :: [GDecayTop dnode tnode a b]  
            } 
+
+deriving instance (Show (xnode b), Show (dnode a b), Show (tnode a)) => Show (GCross xnode dnode tnode a b)
+
+deriving instance (Eq (xnode b), Eq (dnode a b), Eq (tnode a)) => Eq (GCross xnode dnode tnode a b) 
 
 instance (Functor (d a), Functor x) => Functor (GCross x d t a) where
     fmap f (GCross proc inc out) = GCross (fmap f proc) (fmap (fmap f) inc) (fmap (fmap f) out) 
