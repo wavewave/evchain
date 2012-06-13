@@ -6,8 +6,9 @@ import Control.Monad.State
 import Data.List 
 import qualified Data.IntMap as M
 
-
+import HEP.Parser.LHEParser.Parser.Conduit
 import HEP.Automation.EventAnalysis.FileDriver 
+
 
 import HEP.Util.Count 
 
@@ -18,14 +19,16 @@ import System.IO
 
 import           Data.Conduit hiding (sequence)
 import qualified Data.Conduit.List as CL
-import           Data.Conduit.Util.Control (zipStreamWithList)
+import           Data.Conduit.Util.Control as CU (zipStreamWithList,zipSinks3,dropWhile,takeFirstN) 
 import           Data.Conduit.Util.Count
+
 
 
 import HEP.Automation.MadGraph.EventChain.LHEConn
 import HEP.Automation.MadGraph.EventChain.Print 
 import HEP.Automation.MadGraph.EventChain.Spec
 
+import Prelude hiding (dropWhile)
 
 -- | 
 
@@ -44,15 +47,22 @@ zipWithM5 f x1s x2s x3s x4s x5s = sequence (zipWith5 f x1s x2s x3s x4s x5s)
 ppgogo :: SCross 
 ppgogo = x 1 (21,21,[gouun1decay1,gouun1decay2])
 
+-- | 
 
 gouun1decay1 :: SDecayTop
 gouun1decay1 = d 2 (1000021,[2,-2,n1xlledecay1])
 
+-- | 
+
 gouun1decay2 :: SDecayTop
 gouun1decay2 = d 3 (1000021,[2,-2,n1xlledecay2])
 
+-- | 
+
 n1xlledecay1 :: SDecayTop
 n1xlledecay1 = d 4 (1000022,[-11,11,-14,-9000201])
+
+-- | 
 
 n1xlledecay2 :: SDecayTop 
 n1xlledecay2 = d 5 (1000022,[-11,11,-14,-9000201])
@@ -94,11 +104,34 @@ main  = do
   print $ makeCrossID top   
 -}
 
--- | 
-
---- fst3 (x,_,_) = x
-
 -- |
+
+main' :: IO ()
+main' = do 
+    let lhefile1 = "pp_gogo_events.lhe.gz"
+    lst1 <- proc lhefile1 
+    print lst1 
+  where {- iter = CL.foldM (\lst (n,a) -> maybe (return lst) 
+                                         (\(x,_,_) -> return (x:lst)) a)
+
+                       []
+        filesrc :: Handle -> Source CountIO (Maybe (LHEvent,PtlInfoMap,[DecayTop PtlIDInfo]))
+        filesrc ih = ungzipHandle ih =$= lheventIter
+        combsrc :: Handle -> Source CountIO (Int, (Maybe (LHEvent,PtlInfoMap,[DecayTop PtlIDInfo])))
+        combsrc ih = zipStreamWithList [1..] (filesrc ih)
+        action ih = evalStateT (combsrc ih $$ zipSinks3 countIter countMarkerIter iter) (0 :: Int)
+        proc lhe = do h <- openFile lhe ReadMode
+                      (_,_,lst) <- action h 
+                      hClose h 
+                      return lst -}
+        proc lhe = do h <- openFile lhe ReadMode 
+                      lst <- ungzipHandle h =$= takeFirstN 100 =$= parseEvent $$ CL.consume
+-- CU.dropWhile (not.isEventStart) $$ CL.consume -- chunkLHEvent $$ CL.consume -- =$= parseEvent $$ CL.consume 
+                      hClose h 
+                      return lst 
+
+
+-- | 
 
 main :: IO () 
 main = do 
@@ -130,11 +163,6 @@ main = do
                       hClose h 
                       return lst
 
-{-
- File (lheventIter $ zipStreamWithList [1..] =$ iter ) lhe
-                      return lst 
-
--}
 
 -- | 
 
