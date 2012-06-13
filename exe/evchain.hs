@@ -1,30 +1,31 @@
 module Main where
 
-import System.Console.CmdArgs
 
-import Control.Applicative
+import Control.Monad.State
 
 import Data.List 
 import qualified Data.IntMap as M
-import Data.Traversable (traverse)
 
-import HEP.Parser.LHEParser.DecayTop
+
 import HEP.Automation.EventAnalysis.FileDriver 
-import HEP.Automation.EventAnalysis.Print 
-import HEP.Util.Functions
+
+import HEP.Util.Count 
 
 import HEP.Parser.LHEParser.Type 
 
+
 import System.IO
 
-import Data.Enumerator ((=$))
-import Data.Enumerator.Util (zipStreamWithList)
-import qualified Data.Enumerator.List as EL
+import           Data.Conduit hiding (sequence)
+import qualified Data.Conduit.List as CL
+import           Data.Conduit.Util.Control (zipStreamWithList)
+import           Data.Conduit.Util.Count
 
-import HEP.Automation.MadGraph.EventChain.Type
+
 import HEP.Automation.MadGraph.EventChain.LHEConn
 import HEP.Automation.MadGraph.EventChain.Print 
 import HEP.Automation.MadGraph.EventChain.Spec
+
 
 -- | 
 
@@ -40,24 +41,27 @@ zipWithM5 f x1s x2s x3s x4s x5s = sequence (zipWith5 f x1s x2s x3s x4s x5s)
 
 -- | 
 
+ppgogo :: SCross 
 ppgogo = x 1 (21,21,[gouun1decay1,gouun1decay2])
 
+
+gouun1decay1 :: SDecayTop
 gouun1decay1 = d 2 (1000021,[2,-2,n1xlledecay1])
 
+gouun1decay2 :: SDecayTop
 gouun1decay2 = d 3 (1000021,[2,-2,n1xlledecay2])
 
+n1xlledecay1 :: SDecayTop
 n1xlledecay1 = d 4 (1000022,[-11,11,-14,-9000201])
 
+n1xlledecay2 :: SDecayTop 
 n1xlledecay2 = d 5 (1000022,[-11,11,-14,-9000201])
 
 
 -- |
 
-workfunc5 (Just (_, Just (e1,_,_))) 
-          (Just (_, Just (e2,_,_))) 
-          (Just (_, Just (e3,_,_))) 
-          (Just (_, Just (e4,_,_))) 
-          (Just (_, Just (e5,_,_))) = do 
+workfunc5 :: LHEvent -> LHEvent -> LHEvent -> LHEvent -> LHEvent -> IO ()
+workfunc5 e1 e2 e3 e4 e5 = do 
     let tmpmap = M.fromList [(1,e1),(2,e2),(3,e3),(4,e4),(5,e5)]
         rmatch = matchFullCross tmpmap (makeCrossID ppgogo)
     case rmatch of
@@ -92,6 +96,7 @@ main  = do
 
 -- | 
 
+--- fst3 (x,_,_) = x
 
 -- |
 
@@ -111,14 +116,25 @@ main = do
     -- let f = (workfunc3 . combinefunc3) :: Int 
     zipWithM5 workfunc5 lst1 lst2 lst3 lst4 lst5 
     return ()
-  where iter = EL.foldM (\lst a -> maybe (return lst) 
-                                         (\(n,x) -> return (a:lst) ) a)
+  where iter = CL.foldM (\lst (n,a) -> maybe (return lst) 
+                                         (\(x,_,_) -> return (x:lst)) a)
 
                        []
-        proc lhe = do ((_,_,lst),_) <- processFile (lheventIter $ zipStreamWithList [1..] =$ iter ) lhe
+        filesrc :: Handle -> Source CountIO (Maybe (LHEvent,PtlInfoMap,[DecayTop PtlIDInfo]))
+        filesrc ih = ungzipHandle ih =$= lheventIter
+        combsrc :: Handle -> Source CountIO (Int, (Maybe (LHEvent,PtlInfoMap,[DecayTop PtlIDInfo])))
+        combsrc ih = zipStreamWithList [1..] (filesrc ih)
+        action ih = evalStateT (combsrc ih $$ zipSinks3 countIter countMarkerIter iter) (0 :: Int)
+        proc lhe = do h <- openFile lhe ReadMode
+                      (_,_,lst) <- action h 
+                      hClose h 
+                      return lst
+
+{-
+ File (lheventIter $ zipStreamWithList [1..] =$ iter ) lhe
                       return lst 
 
-
+-}
 
 -- | 
 
@@ -265,6 +281,8 @@ testDecay_n12 = GDecay (DNode (4,1000022) 5, [ (GTerminal (TNode (1,-2)))
 
 -- | 
 
+{- 
+
 startMine :: FilePath  -- ^ main hard process
           -> FilePath  -- ^ decay process1
           -> FilePath  -- ^ decay process2
@@ -289,9 +307,12 @@ startMine lhefile lhefile2 lhefile3 outfile =
         hPutStrLn h $ "lst3 = " ++ show (length lst3)
   where iw h (Just (_,a)) (Just (_,b)) (Just (_,c)) = interwine3 h a b c
         iw _ _ _ _ = return () 
-        iter h = EL.foldM (\lst a -> maybe (return lst) 
+        iter h = CL.foldM (\lst a -> maybe (return lst) 
                                        (\(n,x) -> return (a:lst) ) a) 
                           []
+
+
+-}
 
 {-
 

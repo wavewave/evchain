@@ -15,7 +15,7 @@ import Data.Vector.Storable ((!))
 
 -- import Text.Printf
 import System.IO
-import qualified Data.Enumerator.List as EL
+-- import qualified Data.Conduit.List as CL
 import qualified Numeric.LinearAlgebra as NL
 
 

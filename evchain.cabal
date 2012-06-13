@@ -20,11 +20,11 @@ Executable evchain
                    base>4, mtl>2, directory, filepath,
                    cmdargs, 
                    containers,
-                   enumerator,
-                   enumerator-util,
+                   conduit == 0.4.*,
+                   conduit-util,
                    HEPUtil,
                    LHEParser,
-                   EventAnalysis == 0.1,
+                   EventAnalysis >= 0.1.999 && < 0.3,
                    evchain
 
 Library
@@ -36,11 +36,12 @@ Library
                    cmdargs, 
                    LHEParser >= 0.2.999,
                    HEPUtil, 
-                   enumerator, 
+                   conduit, 
                    vector, 
                    hmatrix, 
-                   pointed == 2.0.3.1, 
-                   containers
+                   pointed == 2.1.*,
+                   containers, 
+                   EventAnalysis >= 0.1.999 && < 0.3
                    
   Exposed-Modules: 
                    HEP.Automation.MadGraph.EventChain.ProgType
