@@ -7,18 +7,6 @@ import HEP.Parser.LHEParser.Type
 import HEP.Automation.MadGraph.EventChain.Type
 
 
-data PKind = KPDGID PDGID
-             deriving (Show,Eq)
-
-instance Num PKind where
-  _ + _ = error " no + defined for PKind " 
-  _ - _ = error " no - defined for PKind "
-  _ * _ = error " no - defined for PKind "
-  abs _ = error " no abs defined for PKind " 
-  signum _ = error " no signum defined for PKind " 
-  fromInteger n = KPDGID (fromInteger n)
-
-
 type SDecayTop = GDecayTop DNode TNode PKind ProcessID
 
 type SCross = GCross XNode DNode TNode PKind ProcessID 
@@ -35,6 +23,11 @@ instance Num (SDecayTop) where
 
 -- | 
 
+jet :: SDecayTop 
+jet = GTerminal (TNode MultiJet) 
+
+-- | 
+
 x :: ProcessID -> (SDecayTop,SDecayTop,[SDecayTop]) -> SCross
 x procid (a,b,ys) =  GCross (XNode procid) [a,b] ys 
 
@@ -46,8 +39,8 @@ d procid (a,ys) = GDecay (DNode a procid,ys)
 -- | 
 
 makeDecayID :: ParticleID -> SDecayTop -> DecayID
-makeDecayID idnum (GTerminal (TNode (KPDGID n))) = GTerminal (TNode (idnum,n))
-makeDecayID idnum (GDecay (DNode (KPDGID n) procid,ys)) = GDecay (DNode (idnum,n) procid,dtable)
+makeDecayID idnum (GTerminal (TNode n)) = GTerminal (TNode (idnum,n))
+makeDecayID idnum (GDecay (DNode n procid,ys)) = GDecay (DNode (idnum,n) procid,dtable)
   where dtable = zipWith makeDecayID [1..] ys
 
 -- | 
@@ -57,48 +50,3 @@ makeCrossID (GCross procid inc out) = GCross procid incnew outnew
   where incnew = zipWith makeDecayID [1..] inc
         outnew = zipWith makeDecayID [length inc+1..] out
 
-{-
-t :: PKind -> SDecayTop 
-t a = GTerminal (TNode a)
--}
-
-
--- type 
-
--- |
-
-{-
-
-data TCross
-data TDecay
-data TTerminal
-
-
- 
--- | 
-
-data Spec a where
-    X :: (PKind,PKind,[PKind]) -> Spec TCross
-    D :: (PKind,[PKind])       -> Spec TDecay
-    T :: PKind                 -> Spec TTerminal 
---    deriving (Show,Eq)
-            
-instance Num (Spec TTerminal) where
-  _ + _ = error " no + defined for Spec"
-  _ - _ = error " no - defined for Spec"
-  _ * _ = error " no * defined for Spec"
-  abs _ = error " no abs defined for Spec"
-  signum _ = error " no signum defined for Spec"  
-  fromInteger n = T (KPDGID (fromInteger n))
-
--- | 
-
-
-deriving instance (Show (Spec a))
-
-deriving instance (Eq (Spec a))
-
-
-interpreteD :: Spec TTDecay -> 
-
--}

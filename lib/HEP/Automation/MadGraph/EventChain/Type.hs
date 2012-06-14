@@ -14,6 +14,21 @@ import Control.Applicative
 
 import Prelude hiding (concatMap,foldr)
 
+-- | Particle Kind 
+
+data PKind = KPDGID PDGID | MultiJet 
+             deriving (Show,Eq)
+
+-- | 
+
+instance Num PKind where
+  _ + _ = error " no + defined for PKind " 
+  _ - _ = error " no - defined for PKind "
+  _ * _ = error " no - defined for PKind "
+  abs _ = error " no abs defined for PKind " 
+  signum _ = error " no signum defined for PKind " 
+  fromInteger n = KPDGID (fromInteger n)
+
 -- | Terminal Node 
 
 data TNode a = TNode a 
@@ -114,6 +129,7 @@ instance (Traversable (d a), Copointed (d a), Copointed x, Traversable x ) => Tr
                                               <*> sequenceA (map (traverse f) out)
 
 
+
 -- | 
 
 type ProcessID = Int
@@ -129,11 +145,11 @@ type EventMap = M.IntMap LHEvent
 
 -- | 
 
-type DecayID = GDecayTop DNode TNode (ParticleID,PDGID) ProcessID
+type DecayID = GDecayTop DNode TNode (ParticleID,PKind) ProcessID
 
 -- | 
 
-type CrossID = GCross XNode DNode TNode (ParticleID,PDGID) ProcessID
+type CrossID = GCross XNode DNode TNode (ParticleID,PKind) ProcessID
 
 -- | 
 
@@ -185,10 +201,13 @@ getProcessFromCross (GCross (XNode p) inc out) =
     p : concatMap getProcessFromDecayTop inc 
     ++ concatMap getProcessFromDecayTop out 
 
+-- | 
 
 getProcessFromDecayTop2 :: GDecayTop DNode TNode a b -> [b] 
 getProcessFromDecayTop2 = foldr (:) [] 
   -- where f x acc = x:acc 
+
+-- | 
 
 getProcessFromCross2 :: GCross XNode DNode TNode a b -> [b]
 getProcessFromCross2 = foldr (:) []

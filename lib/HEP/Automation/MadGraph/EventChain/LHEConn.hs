@@ -5,7 +5,7 @@ module HEP.Automation.MadGraph.EventChain.LHEConn where
 import Control.Applicative ((<$>),(<*>))
 import Control.Monad.State hiding (mapM)
 import Data.Either
-import Data.Foldable (foldr)
+import Data.Foldable (foldr,foldrM)
 import Data.Function (on)
 import qualified Data.IntMap as IM
 import Data.List (intercalate, sortBy)
@@ -33,11 +33,28 @@ type Status = Int
 
 -- | 
 
+statusIn :: Status
+statusIn = -1 
+
+-- | 
+
+statusOut :: Status
+statusOut = 1
+
+-- | 
+
+statusIntermediate :: Status
+statusIntermediate = 2
+
+-- | 
+
 type ParticleCoord = (ProcessID,ParticleID)
 
 type ParticleCoordMap = M.Map ParticleCoord PtlID 
 
--- | 
+
+{- 
+-- | find a particle with a given PDGID and Status (final, intermediate, initial) 
 
 findPtlIDStatus :: (PDGID,Status) -> [PtlInfo] -> (Maybe PtlInfo,[PtlInfo]) 
 findPtlIDStatus (pdgid,st) pinfos = foldr f (Nothing,[]) pinfos 
@@ -46,7 +63,7 @@ findPtlIDStatus (pdgid,st) pinfos = foldr f (Nothing,[]) pinfos
                                   then (Just pinfo,rs)
                                   else (Nothing,pinfo:rs)
 
--- | 
+-- | find all particles with a given PDGID and Status
 
 allFindPtlIDStatus :: [(ParticleID,PDGID,Status)] -> [PtlInfo] 
                       -> Either String ([(ParticleID,PtlInfo)],[PtlInfo])
@@ -58,23 +75,52 @@ allFindPtlIDStatus ls pinfos = foldr f (Right ([],pinfos)) ls
             (Just pinfo,remaining') -> Right ((pid,pinfo):done,remaining')
 
 
--- | 
+-}
 
-mkIDTriple :: Status 
-           -> DecayID 
-           -> (ParticleID,PDGID,Status)
-mkIDTriple st x = let (pid,pdgid) = getContent x in (pid,pdgid,st)
+-- | match function type to find a particle with a given pdgid and status criterion
 
--- | 
+data SelectFunc = SelectFunc { selectFunc :: (PDGID,Status) -> Bool 
+                             , description :: String }
+
+-- | match a particle using a selection criterion
+
+findPtlWSelect :: SelectFunc                 -- ^ selector function 
+               -> [PtlInfo]                  -- ^ initial list 
+               -> (Maybe PtlInfo,[PtlInfo])  -- ^ (matched, unmatched) 
+findPtlWSelect sel pinfos = foldr f (Nothing,[]) pinfos 
+  where matchf = selectFunc sel
+        f pinfo (Just matched,unmatched) = (Just matched, pinfo:unmatched)
+        f pinfo (Nothing,unmatched) = if matchf (idup pinfo, istup pinfo) 
+                                        then (Just pinfo,unmatched)
+                                        else (Nothing,pinfo:unmatched)
+
+-- | sequentially finding all particles by a list of selection criterions
+
+matchAllPtlWSelect :: [(ParticleID,SelectFunc)] 
+                   -> [PtlInfo]
+                   -> Either String ([(ParticleID,PtlInfo)],[PtlInfo]) -- ^ error monad, returning matched with ParticleId and unmatched (no id) 
+matchAllPtlWSelect ls pinfos = foldrM f ([],pinfos) ls
+  where f (pid,sel) (done,remaining) = 
+          case findPtlWSelect sel remaining of
+            (Nothing,_)             -> Left ((description sel) ++ " cannot be found.")
+            (Just pinfo,remaining') -> return ((pid,pinfo):done,remaining')
+
+
+-- | match incoming and outgoing particles with a given id set from a given event file
 
 matchInOut :: ProcessID 
-           -> ([(ParticleID,PDGID,Status)],[(ParticleID,PDGID,Status)]) 
+           -> ([(ParticleID,SelectFunc)],[(ParticleID,SelectFunc)]) 
            -> LHEvent 
            -> Either String MatchedLHEvent
 matchInOut procid (incids,outids) ev@(LHEvent einfo pinfos) = do 
-    (matchinc,remaining) <- allFindPtlIDStatus incids pinfos 
-    (matchout,remaining') <- allFindPtlIDStatus outids remaining
-    return (MLHEvent procid ev einfo matchinc matchout remaining')
+    (matched_inc,remaining)  <- matchAllPtlWSelect incids pinfos
+    (matched_out,remaining') <- matchAllPtlWSelect outids remaining
+    return (MLHEvent procid ev einfo matched_inc matched_out remaining')
+
+-- | 
+
+data InOutDir = In | Out 
+              deriving Show 
 
 -- | 
 
@@ -82,34 +128,60 @@ matchPtl4Cross :: CrossID
                -> LHEvent
                -> Either String MatchedLHEvent 
 matchPtl4Cross (GCross (XNode procid) inc out) lhe = matchInOut procid (incids,outids) lhe
-  where incids = map (mkIDTriple (-1)) inc
-        outids = map (mkIDTriple 1) out
+  where incids = map (getSelPair In)  inc
+        outids = map (getSelPair Out) out 
+
+-- |
+
+mkSelFunc :: InOutDir -> PKind -> SelectFunc
+mkSelFunc dir pkind = let f (pdgid',st) = isMatchedStatus st && isMatchedKind pkind pdgid'
+                      in SelectFunc f ("(pkind = " ++ show pkind ++ "," ++ show dir ++ ")")
+  where isMatchedStatus st = case dir of 
+                               In -> st == statusIn 
+                               Out -> st == statusOut
+        isMatchedKind (KPDGID pdg_id) pdg_id' = pdg_id == pdg_id'
+        isMatchedKind MultiJet pdg_id' = pdg_id' == 1 || pdg_id' == (-1)
+                                         || pdg_id' == 2 || pdg_id' == (-2)
+                                         || pdg_id' == 3 || pdg_id' == (-3)
+                                         || pdg_id' == 4 || pdg_id' == (-4)
+                                         || pdg_id' == 21 
+        
+-- | 
+
+getSelPair :: InOutDir -> DecayID -> (ParticleID,SelectFunc)
+getSelPair dir x = let (pid,pkind) = getContent x  
+                   in (pid,mkSelFunc dir pkind)
 
 -- | 
 
-matchPtl4Decay :: (DNode (ParticleID,PDGID) ProcessID, [DecayID])
+matchPtl4Decay :: (DNode (ParticleID,PKind) ProcessID, [DecayID])
                -> LHEvent
                -> Either String MatchedLHEvent
 matchPtl4Decay (inc,out) lhe = matchInOut procid (incids,outids) lhe 
-  where (procid,incids) = case inc of 
-                   DNode (x,y) p -> (p,[(x,y,-1)])
-        outids = map (mkIDTriple 1) out 
-   
+  where procid :: ProcessID
+        incids :: [(ParticleID,SelectFunc)]
+        (procid,incids) = case inc of DNode (x,y) p -> (p,[(x,mkSelFunc In y)])
+        outids = map (getSelPair Out) out 
+
 -- | 
 
 matchFullDecay :: Maybe MatchedLHEvent -- ^ context
                -> IM.IntMap LHEvent
                -> DecayID
                -> Either String DecayFull
-matchFullDecay _ _ (GTerminal (TNode x)) = return (GTerminal (TNode x))
-matchFullDecay c m (GDecay elem@(DNode (ptl_id,pdg_id) proc_id, ds)) = 
-   case r of 
-     Nothing -> Left $ show proc_id ++ " process doesn't exist"
-     Just lhe -> do 
-       mev <- matchPtl4Decay elem lhe
-       mds <- mapM (matchFullDecay (Just mev) m) ds
-       let newctxt = fmap (\y->(y,findParticleID (ptl_id,pdg_id) y)) c 
-       return (GDecay (DNode (ptl_id,pdg_id) (CMLHEvent newctxt mev), mds)) 
+matchFullDecay c m (GTerminal (TNode (ptl_id,pkind))) = 
+    case pkind of 
+      KPDGID pdg_id -> return (GTerminal (TNode (ptl_id,pdg_id)))
+      _ -> return (GTerminal (TNode (ptl_id,0)))   -- this is very bad but I do not have any solution.
+matchFullDecay c m (GDecay elem@(DNode (ptl_id,pkind) proc_id, ds)) = 
+    case pkind of 
+      KPDGID pdg_id -> case r of 
+                         Nothing -> Left $ show proc_id ++ " process doesn't exist"
+                         Just lhe -> do 
+                           mev <- matchPtl4Decay elem lhe
+                           mds <- mapM (matchFullDecay (Just mev) m) ds
+                           let newctxt = fmap (\y->(y,findParticleID (ptl_id,pdg_id) y)) c 
+                           return (GDecay (DNode (ptl_id,pdg_id) (CMLHEvent newctxt mev), mds)) 
   where r = IM.lookup proc_id m 
         findParticleID (i,pdg) y = let (_,after) = break (\x->fst x == i) (mlhev_outgoing y)  
                                    in (i,pdg,snd (head after))
@@ -392,7 +464,6 @@ interwine2 (LHEvent einfo1 pinfos1) (LHEvent einfo2 pinfos2) =
       neinfo = einfo1 { nup = numptls }
   in LHEvent neinfo npinfos 
 
-
 -- | 
 
 chainDecay :: CrossFull -> [PtlInfo] 
@@ -400,51 +471,10 @@ chainDecay = foldr f []
   where f e@(CMLHEvent u c) acc = let (LHEvent _einfo pinfos) = mlhev_orig c
                                   in pinfos ++ acc 
 
--- getPtlInfosSortedFromCMLHEvent e ++ acc 
-  {- map snd (mlhev_incoming c)
-     ++ map snd (mlhev_outgoing c)
-     ++ mlhev_intermediate c -}
-
+-- |
  
 getPtlInfosSortedFromCMLHEvent :: ContextMatchedLHEvent -> [PtlInfo]
 getPtlInfosSortedFromCMLHEvent (CMLHEvent u c) =  sortBy (compare `on` ptlid) (inc ++ out ++ int)
   where inc = map snd (mlhev_incoming c)
         out = map snd (mlhev_outgoing c)
         int = mlhev_intermediate c
-
-{-
-traverseWithAC :: CrossFull -> IO ()
-traverseWithAC g = do execStateT (traverse action g) 0 
--}
-
-{-
-connectEvent :: ContextMatchedLHEvent -> [PtlInfo] -> [PtlInfo]
-connectEvent e@(CMLHEvent u c) acc = 
-  let pinfos2 = getPtlInfosSortedFromCMLHEvent e
-      ptlids1 = map ptlid acc
-      icols1 = filter (/= 0) (concatMap ((\x -> [fst x, snd x]) . icolup )
-                                acc)
-      maxid1 = maximum ptlids1
-      maxicol1 = maximum icols1 
-      minicol1 = minimum icols1 
-      npinfos2'  = map (adjustIds (idChange (maxid1-1)) (colChange (maxicol1-minicol1+1)))
-                       pinfos2
-      (first1,(n1:rest1)) = getN1 pinfos1
-      pinfos1' = first1 ++ (n1 { istup = 2} : rest1)
-      rn1  = head $ npinfos2' 
-      (_:npinfos2) = adjustIdMomSpin (n1,rn1) . adjustFirst (ptlid n1) $ npinfos2'  
-      npinfos = pinfos1' ++ npinfos2
-      numptls = length npinfos
-      neinfo = einfo1 { nup = numptls }
-  in LHEvent neinfo npinfos 
-
--}
-
-{-
-
--- | 
-
-accumLHEventFromDecay :: [PtlInfo] -> DecayFull -> [PtlInfo]
-accumLHEventFromDecay (GTerminal ) = foldr f [] 
-  where f  acc
--}

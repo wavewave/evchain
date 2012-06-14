@@ -23,7 +23,7 @@ import           Data.Conduit.Util.Control as CU (zipStreamWithList,zipSinks3,dr
 import           Data.Conduit.Util.Count
 
 
-
+import HEP.Automation.MadGraph.EventChain.Type
 import HEP.Automation.MadGraph.EventChain.LHEConn
 import HEP.Automation.MadGraph.EventChain.Print 
 import HEP.Automation.MadGraph.EventChain.Spec
@@ -45,27 +45,27 @@ zipWithM5 f x1s x2s x3s x4s x5s = sequence (zipWith5 f x1s x2s x3s x4s x5s)
 -- | 
 
 ppgogo :: SCross 
-ppgogo = x 1 (21,21,[gouun1decay1,gouun1decay2])
+ppgogo = x 1 (jet,jet,[gouun1decay1,gouun1decay2])
 
 -- | 
 
 gouun1decay1 :: SDecayTop
-gouun1decay1 = d 2 (1000021,[2,-2,n1xlledecay1])
+gouun1decay1 = d 2 (1000021,[2,-2,n1xueddecay1])
 
 -- | 
 
 gouun1decay2 :: SDecayTop
-gouun1decay2 = d 3 (1000021,[2,-2,n1xlledecay2])
+gouun1decay2 = d 3 (1000021,[2,-2,n1xueddecay2])
 
 -- | 
 
-n1xlledecay1 :: SDecayTop
-n1xlledecay1 = d 4 (1000022,[-11,11,-14,-9000201])
+n1xueddecay1 :: SDecayTop
+n1xueddecay1 = d 4 (1000022,[-2,-11,1,-9000201])
 
 -- | 
 
-n1xlledecay2 :: SDecayTop 
-n1xlledecay2 = d 5 (1000022,[-11,11,-14,-9000201])
+n1xueddecay2 :: SDecayTop 
+n1xueddecay2 = d 5 (1000022,[-2,-11,1,-9000201])
 
 
 -- |
@@ -75,7 +75,8 @@ workfunc5 e1 e2 e3 e4 e5 = do
     let tmpmap = M.fromList [(1,e1),(2,e2),(3,e3),(4,e4),(5,e5)]
         rmatch = matchFullCross tmpmap (makeCrossID ppgogo)
     case rmatch of
-      Left err-> putStrLn err
+      Left err-> do
+        error err
       Right fcross -> do 
         -- putStrLn $ "number of particles = " ++ show (countPtls fcross)
         -- putStrLn $ concatMap pformat (accumLHEvent fcross)
@@ -85,24 +86,41 @@ workfunc5 e1 e2 e3 e4 e5 = do
         putStrLn $ lheFormatOutput $ LHEvent (EvInfo 0 0 0 0 0 0) pinfos 
         return ()
 
+
+
+
 -- | 
 
-{-
-main :: IO ()
-main  = do
-  -- putStrLn "he"
-  -- let x = (3  :: Spec)
-  -- print x
+main :: IO () 
+main = do 
+    let lhefile1 = "gogo_qld.lhe.gz"
+        lhefile2 = "gon1uu_qld_run01.lhe.gz" -- "test.lhe.gz"
+        lhefile3 = "gon1uu_qld_run02.lhe.gz"
+        lhefile4 = "n1uedx_qld_run01.lhe.gz"
+        lhefile5 = "n1uedx_qld_run02.lhe.gz"
+    lst1 <- proc lhefile1       
+    lst2 <- proc lhefile2 
+    lst3 <- proc lhefile3  
+    lst4 <- proc lhefile4
+    lst5 <- proc lhefile5
 
-  -- let y = X (21,21,[1000021,1000021])
-  let top = x 1 (21,21,[d1,d2])
-      d1 = d 2 (1000021, [2,-2,1000022])
-      d2 = d 3 (1000021, [1,-1,1000022])
+    -- let f = (workfunc3 . combinefunc3) :: Int 
+    zipWithM5 workfunc5 lst1 lst2 lst3 lst4 lst5 
+    return ()
+  where iter = CL.foldM (\lst (n,a) -> maybe (return lst) 
+                                         (\(x,_,_) -> return (x:lst)) a)
 
-  print top 
+                       []
+        filesrc :: Handle -> Source CountIO (Maybe (LHEvent,PtlInfoMap,[DecayTop PtlIDInfo]))
+        filesrc ih = ungzipHandle ih =$= lheventIter {- =$= takeFirstN 20 -}
+        combsrc :: Handle -> Source CountIO (Int, (Maybe (LHEvent,PtlInfoMap,[DecayTop PtlIDInfo])))
+        combsrc ih = zipStreamWithList [1..] (filesrc ih)
+        action ih = evalStateT (combsrc ih $$ zipSinks3 countIter countMarkerIter iter) (0 :: Int)
+        proc lhe = do h <- openFile lhe ReadMode
+                      (_,_,lst) <- action h 
+                      hClose h 
+                      return lst
 
-  print $ makeCrossID top   
--}
 
 -- |
 
@@ -125,43 +143,10 @@ main' = do
                       hClose h 
                       return lst -}
         proc lhe = do h <- openFile lhe ReadMode 
-                      lst <- ungzipHandle h =$= takeFirstN 100 =$= parseEvent $$ CL.consume
+                      lst <- ungzipHandle h =$= {- takeFirstN 100 =$= -} parseEvent $$ CL.consume
 -- CU.dropWhile (not.isEventStart) $$ CL.consume -- chunkLHEvent $$ CL.consume -- =$= parseEvent $$ CL.consume 
                       hClose h 
                       return lst 
-
-
--- | 
-
-main :: IO () 
-main = do 
-    let lhefile1 = "pp_gogo_events.lhe.gz"
-        lhefile2 = "go_uun1_run01_events.lhe.gz" -- "test.lhe.gz"
-        lhefile3 = "go_uun1_run02_events.lhe.gz"
-        lhefile4 = "n1_eevmsxxp_run01_events.lhe.gz"
-        lhefile5 = "n1_eevmsxxp_run02_events.lhe.gz"
-    lst1 <- proc lhefile1       
-    lst2 <- proc lhefile2 
-    lst3 <- proc lhefile3  
-    lst4 <- proc lhefile4
-    lst5 <- proc lhefile5
-
-    -- let f = (workfunc3 . combinefunc3) :: Int 
-    zipWithM5 workfunc5 lst1 lst2 lst3 lst4 lst5 
-    return ()
-  where iter = CL.foldM (\lst (n,a) -> maybe (return lst) 
-                                         (\(x,_,_) -> return (x:lst)) a)
-
-                       []
-        filesrc :: Handle -> Source CountIO (Maybe (LHEvent,PtlInfoMap,[DecayTop PtlIDInfo]))
-        filesrc ih = ungzipHandle ih =$= lheventIter
-        combsrc :: Handle -> Source CountIO (Int, (Maybe (LHEvent,PtlInfoMap,[DecayTop PtlIDInfo])))
-        combsrc ih = zipStreamWithList [1..] (filesrc ih)
-        action ih = evalStateT (combsrc ih $$ zipSinks3 countIter countMarkerIter iter) (0 :: Int)
-        proc lhe = do h <- openFile lhe ReadMode
-                      (_,_,lst) <- action h 
-                      hClose h 
-                      return lst
 
 
 -- | 
@@ -372,4 +357,23 @@ ppgogo = GCross (XNode 1)
                 , gouun1decay2 ]
 
 
+-}
+
+-- | 
+
+{-
+main :: IO ()
+main  = do
+  -- putStrLn "he"
+  -- let x = (3  :: Spec)
+  -- print x
+
+  -- let y = X (21,21,[1000021,1000021])
+  let top = x 1 (21,21,[d1,d2])
+      d1 = d 2 (1000021, [2,-2,1000022])
+      d2 = d 3 (1000021, [1,-1,1000022])
+
+  print top 
+
+  print $ makeCrossID top   
 -}
