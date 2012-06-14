@@ -60,12 +60,12 @@ gouun1decay2 = d 3 (1000021,[2,-2,n1xueddecay2])
 -- | 
 
 n1xueddecay1 :: SDecayTop
-n1xueddecay1 = d 4 (1000022,[-2,-11,1,-9000201])
+n1xueddecay1 = d 4 (1000022,[ppair 2, ppair 11, ppair 1, ppair 9000201])
 
 -- | 
 
 n1xueddecay2 :: SDecayTop 
-n1xueddecay2 = d 5 (1000022,[-2,-11,1,-9000201])
+n1xueddecay2 = d 5 (1000022,[ppair 2, ppair 11, ppair 1, ppair 9000201])
 
 
 -- |
@@ -112,7 +112,7 @@ main = do
 
                        []
         filesrc :: Handle -> Source CountIO (Maybe (LHEvent,PtlInfoMap,[DecayTop PtlIDInfo]))
-        filesrc ih = ungzipHandle ih =$= lheventIter {- =$= takeFirstN 20 -}
+        filesrc ih = ungzipHandle ih =$= lheventIter {- =$= takeFirstN 20 -} 
         combsrc :: Handle -> Source CountIO (Int, (Maybe (LHEvent,PtlInfoMap,[DecayTop PtlIDInfo])))
         combsrc ih = zipStreamWithList [1..] (filesrc ih)
         action ih = evalStateT (combsrc ih $$ zipSinks3 countIter countMarkerIter iter) (0 :: Int)

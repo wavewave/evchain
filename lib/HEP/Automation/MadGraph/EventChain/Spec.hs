@@ -28,6 +28,11 @@ jet = GTerminal (TNode MultiJet)
 
 -- | 
 
+ppair :: PDGID -> SDecayTop 
+ppair pdg_id = GTerminal (TNode (PtlPtlbar pdg_id))
+
+-- | 
+
 x :: ProcessID -> (SDecayTop,SDecayTop,[SDecayTop]) -> SCross
 x procid (a,b,ys) =  GCross (XNode procid) [a,b] ys 
 

@@ -140,6 +140,7 @@ mkSelFunc dir pkind = let f (pdgid',st) = isMatchedStatus st && isMatchedKind pk
                                In -> st == statusIn 
                                Out -> st == statusOut
         isMatchedKind (KPDGID pdg_id) pdg_id' = pdg_id == pdg_id'
+        isMatchedKind (PtlPtlbar pdg_id) pdg_id' = pdg_id == pdg_id' || pdg_id == (-pdg_id')
         isMatchedKind MultiJet pdg_id' = pdg_id' == 1 || pdg_id' == (-1)
                                          || pdg_id' == 2 || pdg_id' == (-2)
                                          || pdg_id' == 3 || pdg_id' == (-3)
