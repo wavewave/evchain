@@ -24,7 +24,7 @@ Executable evchain
                    conduit-util,
                    HEPUtil,
                    LHEParser,
-                   EventAnalysis >= 0.1.999 && < 0.3,
+--                   EventAnalysis >= 0.1.999 && < 0.3,
                    evchain
 
 Library
@@ -40,13 +40,14 @@ Library
                    vector, 
                    hmatrix, 
                    pointed == 2.1.*,
-                   containers, 
-                   EventAnalysis >= 0.1.999 && < 0.3
+                   containers
+--                    EventAnalysis >= 0.1.999 && < 0.3
                    
   Exposed-Modules: 
                    HEP.Automation.MadGraph.EventChain.ProgType
                    HEP.Automation.MadGraph.EventChain.Job
                    HEP.Automation.MadGraph.EventChain.Command
+                   HEP.Automation.MadGraph.EventChain.FileDriver
                    HEP.Automation.MadGraph.EventChain.LHEConn
                    HEP.Automation.MadGraph.EventChain.Type
                    HEP.Automation.MadGraph.EventChain.Print
