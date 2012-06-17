@@ -37,10 +37,10 @@ type DecayTopSink a b m c = Sink (Maybe (a,b,[DecayTop PtlIDInfo])) m c
 
 
 -- | 
-
+{-
 zipSinks3 :: Monad m => Sink i m r -> Sink i m r' -> Sink i m r'' -> Sink i m (r,r',r'') 
 zipSinks3 s1 s2 s3 = fmap (\((x,y),z) -> (x,y,z)) (s1 `CL.zipSinks` s2 `CL.zipSinks` s3)
-
+-}
 -- | 
 
 ungzipHandle :: (MonadIO m, MonadUnsafeIO m, MonadThrow m) => Handle -> Source m Event

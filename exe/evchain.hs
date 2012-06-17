@@ -7,7 +7,7 @@ import Data.List
 import qualified Data.IntMap as M
 
 import HEP.Parser.LHEParser.Parser.Conduit
-import HEP.Automation.EventAnalysis.FileDriver 
+import HEP.Automation.MadGraph.EventChain.FileDriver 
 
 
 import HEP.Util.Count 
