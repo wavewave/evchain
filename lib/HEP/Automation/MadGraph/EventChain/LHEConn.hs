@@ -52,32 +52,8 @@ type ParticleCoord = (ProcessID,ParticleID)
 
 type ParticleCoordMap = M.Map ParticleCoord PtlID 
 
-
-{- 
--- | find a particle with a given PDGID and Status (final, intermediate, initial) 
-
-findPtlIDStatus :: (PDGID,Status) -> [PtlInfo] -> (Maybe PtlInfo,[PtlInfo]) 
-findPtlIDStatus (pdgid,st) pinfos = foldr f (Nothing,[]) pinfos 
-  where f pinfo (Just r, rs) = (Just r,(pinfo:rs))
-        f pinfo (Nothing, rs) = if (pdgid == idup pinfo) && (st == istup pinfo)
-                                  then (Just pinfo,rs)
-                                  else (Nothing,pinfo:rs)
-
--- | find all particles with a given PDGID and Status
-
-allFindPtlIDStatus :: [(ParticleID,PDGID,Status)] -> [PtlInfo] 
-                      -> Either String ([(ParticleID,PtlInfo)],[PtlInfo])
-allFindPtlIDStatus ls pinfos = foldr f (Right ([],pinfos)) ls
-  where f _ (Left str) = Left str 
-        f (pid,pdgid,status) (Right (done,remaining)) = 
-          case findPtlIDStatus (pdgid,status) remaining of
-            (Nothing,_) -> Left ((show pdgid) ++ "," ++ (show status) ++ " cannot be found.")
-            (Just pinfo,remaining') -> Right ((pid,pinfo):done,remaining')
-
-
--}
-
--- | match function type to find a particle with a given pdgid and status criterion
+-- | match function type to find a particle with a given pdgid and 
+--   status criterion
 
 data SelectFunc = SelectFunc { selectFunc :: (PDGID,Status) -> Bool 
                              , description :: String }
@@ -98,7 +74,9 @@ findPtlWSelect sel pinfos = foldr f (Nothing,[]) pinfos
 
 matchAllPtlWSelect :: [(ParticleID,SelectFunc)] 
                    -> [PtlInfo]
-                   -> Either String ([(ParticleID,PtlInfo)],[PtlInfo]) -- ^ error monad, returning matched with ParticleId and unmatched (no id) 
+                   -> Either String ([(ParticleID,PtlInfo)],[PtlInfo]) 
+                          -- ^ error monad, returning matched with ParticleId 
+                          --   and unmatched (no id) 
 matchAllPtlWSelect ls pinfos = foldrM f ([],pinfos) ls
   where f (pid,sel) (done,remaining) = 
           case findPtlWSelect sel remaining of
@@ -106,7 +84,8 @@ matchAllPtlWSelect ls pinfos = foldrM f ([],pinfos) ls
             (Just pinfo,remaining') -> return ((pid,pinfo):done,remaining')
 
 
--- | match incoming and outgoing particles with a given id set from a given event file
+-- | match incoming and outgoing particles with a given id set from a given 
+--   event file
 
 matchInOut :: ProcessID 
            -> ([(ParticleID,SelectFunc)],[(ParticleID,SelectFunc)]) 
@@ -173,7 +152,8 @@ matchFullDecay :: Maybe MatchedLHEvent -- ^ context
 matchFullDecay c m (GTerminal (TNode (ptl_id,pkind))) = 
     case pkind of 
       KPDGID pdg_id -> return (GTerminal (TNode (ptl_id,pdg_id)))
-      _ -> return (GTerminal (TNode (ptl_id,0)))   -- this is very bad but I do not have any solution.
+      _ -> return (GTerminal (TNode (ptl_id,0)))   
+            -- this is very bad but I do not have any solution.
 matchFullDecay c m (GDecay elem@(DNode (ptl_id,pkind) proc_id, ds)) = 
     case pkind of 
       KPDGID pdg_id -> case r of 
@@ -203,8 +183,6 @@ matchFullCross m g@(GCross (XNode pid) inc out) =
             result = GCross (XNode (CMLHEvent Nothing mev)) mis mos 
         return result 
   where r = IM.lookup pid m 
-
-
 
 -- | 
 
