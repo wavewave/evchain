@@ -48,14 +48,15 @@ Library
 --                    EventAnalysis >= 0.1.999 && < 0.3
                    
   Exposed-Modules: 
-                   HEP.Automation.MadGraph.EventChain.ProgType
-                   HEP.Automation.MadGraph.EventChain.Job
                    HEP.Automation.MadGraph.EventChain.Command
                    HEP.Automation.MadGraph.EventChain.FileDriver
+                   HEP.Automation.MadGraph.EventChain.Job
                    HEP.Automation.MadGraph.EventChain.LHEConn
-                   HEP.Automation.MadGraph.EventChain.Type
                    HEP.Automation.MadGraph.EventChain.Print
+                   HEP.Automation.MadGraph.EventChain.ProgType
                    HEP.Automation.MadGraph.EventChain.Spec
+                   HEP.Automation.MadGraph.EventChain.Type
+                   HEP.Automation.MadGraph.EventChain.Util
   Other-Modules: 
 
  

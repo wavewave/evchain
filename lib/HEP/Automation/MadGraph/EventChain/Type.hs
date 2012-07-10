@@ -154,13 +154,21 @@ type CrossID = GCross XNode DNode TNode (ParticleID,PKind) ProcessID
 
 -- | 
 
-type DecayFull = GDecayTop DNode TNode (ParticleID,PDGID) ContextMatchedLHEvent
+type DecayFull = GDecayTop DNode TNode (ParticleID,PDGID) ContextEvent
 
 -- | 
 
-type CrossFull = GCross XNode DNode TNode (ParticleID,PDGID) ContextMatchedLHEvent 
+type CrossFull = GCross XNode DNode TNode (ParticleID,PDGID) ContextEvent 
 
--- | 
+-- | Particle IDs and Info Triplet 
+
+data PTriplet = PTriplet { pt_pid   :: ParticleID
+                         , pt_pdgid :: PDGID
+                         , pt_pinfo :: PtlInfo 
+                         } 
+
+
+-- | data type for a single LHE event matched with a specified process node 
 
 data MatchedLHEvent = MLHEvent { mlhev_procid :: ProcessID
                                , mlhev_orig :: LHEvent 
@@ -169,11 +177,18 @@ data MatchedLHEvent = MLHEvent { mlhev_procid :: ProcessID
                                , mlhev_outgoing :: [(ParticleID,PtlInfo)]
                                , mlhev_intermediate :: [PtlInfo] } 
 
-data ContextMatchedLHEvent = 
-    CMLHEvent 
-    { upper :: Maybe (MatchedLHEvent,(ParticleID,PDGID,PtlInfo)) -- ^ particle id is for current particle 
-    , lorentzXform :: LorentzRotation
-    , current :: MatchedLHEvent } 
+-- | data type for event and context for a node 
+
+data ContextEvent = CEvent { absoluteContext :: LorentzRotation -- ^ relative to cross frame
+                           , relativeContext :: Maybe (ProcessID,PTriplet)  -- ^ relative to mother 
+                           , selfEvent :: MatchedLHEvent
+                           } 
+
+-- data ContextMatchedLHEvent = 
+--     CMLHEvent 
+--     { upper :: Maybe (MatchedLHEvent,(ParticleID,PDGID,PtlInfo)) -- ^ particle id is for current particle 
+--     , lorentzXform :: LorentzRotation
+--     , current :: MatchedLHEvent } 
 
 -- | 
 
