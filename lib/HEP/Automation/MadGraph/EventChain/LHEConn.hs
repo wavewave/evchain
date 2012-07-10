@@ -12,12 +12,8 @@ import Data.List (intercalate, sortBy)
 import qualified Data.Map as M
 import Data.Traversable 
 import Data.Vector.Storable ((!))
-
--- import Text.Printf
-import System.IO
--- import qualified Data.Conduit.List as CL
 import qualified Numeric.LinearAlgebra as NL
-
+import System.IO
 
 import HEP.Parser.LHEParser.Type
 import HEP.Util.Functions
@@ -132,6 +128,9 @@ getSelPair :: InOutDir -> DecayID -> (ParticleID,SelectFunc)
 getSelPair dir x = let (pid,pkind) = getContent x  
                    in (pid,mkSelFunc dir pkind)
 
+
+
+
 -- | 
 
 matchPtl4Decay :: (DNode (ParticleID,PKind) ProcessID, [DecayID])
@@ -145,27 +144,35 @@ matchPtl4Decay (inc,out) lhe = matchInOut procid (incids,outids) lhe
 
 -- | 
 
-matchFullDecay :: Maybe MatchedLHEvent -- ^ context
+matchFullDecay :: MatchedLHEvent -- ^ context
+               -> NL.Matrix Double 
                -> IM.IntMap LHEvent
                -> DecayID
                -> Either String DecayFull
-matchFullDecay c m (GTerminal (TNode (ptl_id,pkind))) = 
+matchFullDecay c _lm m (GTerminal (TNode (ptl_id,pkind))) = 
     case pkind of 
       KPDGID pdg_id -> return (GTerminal (TNode (ptl_id,pdg_id)))
       _ -> return (GTerminal (TNode (ptl_id,0)))   
             -- this is very bad but I do not have any solution.
-matchFullDecay c m (GDecay elem@(DNode (ptl_id,pkind) proc_id, ds)) = 
+matchFullDecay c lm m (GDecay elem@(DNode (ptl_id,pkind) proc_id, ds)) = 
     case pkind of 
       KPDGID pdg_id -> case r of 
                          Nothing -> Left $ show proc_id ++ " process doesn't exist"
                          Just lhe -> do 
                            mev <- matchPtl4Decay elem lhe
-                           mds <- mapM (matchFullDecay (Just mev) m) ds
-                           let newctxt = fmap (\y->(y,findParticleID (ptl_id,pdg_id) y)) c 
-                           return (GDecay (DNode (ptl_id,pdg_id) (CMLHEvent newctxt mev), mds)) 
+                           mds <- mapM (matchFullDecay (Just mev) _ m) ds
+                           let nctxt = (c,findParticleID (ptl_id,pdg_id) c) 
+                               nlxfm = lm <.> boostBackXfrm 
+
+
+mom = pupTo4mom . pup $ opinfo 
+
+                           return (GDecay (DNode (ptl_id,pdg_id) (CMLHEvent (Just nctxt) nlxfm mev), mds)) 
   where r = IM.lookup proc_id m 
         findParticleID (i,pdg) y = let (_,after) = break (\x->fst x == i) (mlhev_outgoing y)  
                                    in (i,pdg,snd (head after))
+
+        
 
 -- | 
 
@@ -177,12 +184,18 @@ matchFullCross m g@(GCross (XNode pid) inc out) =
       Nothing -> Left $ show pid ++ " process doesn't exist"
       Just lhe -> do 
         (mev :: MatchedLHEvent) <- matchPtl4Cross g lhe
-        (mis :: [DecayFull]) <- mapM (matchFullDecay (Just mev) m) inc
-        (mos :: [DecayFull]) <- mapM (matchFullDecay (Just mev) m) out 
+        (mis :: [DecayFull]) <- mapM (matchFullDecay mev (NL.ident 4) m) inc
+        (mos :: [DecayFull]) <- mapM (matchFullDecay mev (NL.idnet 4) m) out 
         let result :: CrossFull
-            result = GCross (XNode (CMLHEvent Nothing mev)) mis mos 
+            result = GCross (XNode (CMLHEvent Nothing (NL.ident 4) mev)) mis mos 
         return result 
   where r = IM.lookup pid m 
+
+
+
+
+
+
 
 -- | 
 
@@ -212,8 +225,6 @@ accumTotalEvent g = do (_,_,result,_) <- execStateT (traverse action g)
                                                         , M.empty :: ParticleCoordMap ) 
                        let result' = IM.elems result
                        let sortedResult = sortBy (compare `on` ptlid) result'
-                       -- putStrLn "============!!!=============="
-                       -- putStrLn $ pformats sortedResult
                        return sortedResult 
   where action cmlhev = do 
           let pinfos = getPInfos . mlhev_orig . current $ cmlhev
@@ -232,11 +243,8 @@ accumTotalEvent g = do (_,_,result,_) <- execStateT (traverse action g)
           (momf,rmap1) <- case upper cmlhev of 
             Nothing -> return (id,rmap)
             Just (ev,(pid,pcode,opinfo)) -> liftIO $ do  
-              -- putStrLn "Mother=" 
-              -- putStrLn $ pformat opinfo  
               let rpinfo = (snd . head . mlhev_incoming . current ) cmlhev
-              -- putStrLn $ pformat rpinfo 
-              let oid = idChange stid (ptlid rpinfo)
+                  oid = idChange stid (ptlid rpinfo)
                   nid = case M.lookup (mlhev_procid ev,pid) stmm of
                           Nothing -> error " herehere " 
                           Just n -> n 
@@ -251,14 +259,6 @@ accumTotalEvent g = do (_,_,result,_) <- execStateT (traverse action g)
               rmap2 = maybe (insertAll kri rmap1) (const rmap1) (upper cmlhev)
               rmap3 = insertAll kro rmap2
               rmap4 = insertAll krm rmap3 
-
-                       
-          -- liftIO $ putStrLn (pformats ri) 
-          -- liftIO $ putStrLn (pformats ro)
-          -- liftIO $ putStrLn (pformats rm)
-          -- liftIO $ putStrLn (show stmm')
-          -- liftIO $ putStrLn $ concat (IM.elems (fmap pformat rmap4 ))
-          -- liftIO $ putStrLn "**"
           put (stid+maxid-1,stcol+maxicol-minicol+1-coloffset,rmap4,stmm')
 
 -- | 
@@ -267,24 +267,6 @@ motherAdjustID :: (PtlID,PtlID) -> PtlInfo -> PtlInfo
 motherAdjustID (oid,nid) = idAdj (\y -> if y == oid then nid else y)
 
 
--- | 
-
-countPtls :: CrossFull -> Int
-countPtls g = execState (traverse action g) 0  
-  where action x = 
-          modify (\y -> y + length (mlhev_incoming (current x))
-                          + length (mlhev_outgoing (current x))
-                          + length (mlhev_intermediate (current x)))
-
-
--- | 
-
-accumLHEvent :: CrossFull -> [PtlInfo]
-accumLHEvent g = execState (traverse action g) [] 
-  where action x = 
-          modify (\acc -> acc ++ (map snd (mlhev_incoming (current x)))
-                              ++ (map snd (mlhev_outgoing (current x)))
-                              ++ mlhev_intermediate (current x))
 
 -- | 
 
@@ -303,11 +285,6 @@ extractIDsFromMLHE :: MatchedLHEvent -> ([(ParticleID,PtlID)],[(ParticleID,PtlID
 extractIDsFromMLHE mlhe = 
   ( map (\x->(fst x, ptlid (snd x))) (mlhev_incoming mlhe)
   , map (\x->(fst x, ptlid (snd x))) (mlhev_outgoing mlhe) )
-
--- | 
-
-getN1 :: [PtlInfo] -> ([PtlInfo],[PtlInfo])
-getN1 = break (\x -> idup x == 1000022 && istup x == 1)    
 
 
 -- | 
@@ -333,7 +310,6 @@ colChangeFunc offset (Just optl,nptl) a
   | otherwise = a + offset 
   where (col1,col2) = icolup nptl 
 
-
 -- | 
 
 colChangeOffset :: (Maybe PtlInfo,PtlInfo) -> Int 
@@ -342,6 +318,8 @@ colChangeOffset (moptl,nptl) = let r | col1 /=0 && col2 /= 0 = 2
                                      | otherwise = 0 
                                in r 
   where (col1,col2) = icolup nptl 
+
+-- | 
 
 colChangePair :: Int -> (Maybe PtlInfo,PtlInfo) -> (Int, Int -> Int)
 colChangePair offset ptls = (colChangeOffset ptls, colChangeFunc offset ptls)
@@ -365,12 +343,18 @@ adjustIds idmap icolmap pinfo =
 adjustFirst :: Int -> [PtlInfo] -> [PtlInfo]
 adjustFirst n (x:xs) = x { mothup = (n,n), istup = 2 } : xs 
 
+-- |
+
+boostBackXfrm :: FourMomentum -> LorentzRotation 
+boostBackXfrm mom = let v3 = NL.scale (-1) .  beta . fourMomentumToLorentzVector $ mom
+                    in boost v3  
+
+
 -- | 
 
 boostBack :: FourMomentum -> PtlInfo -> PtlInfo 
 boostBack mom pinfo = 
-  let v3 = NL.scale (-1) .  beta . fourMomentumToLorentzVector $ mom
-      lrot = boost v3  
+  let lrot = boostBackXfrm mom
       v = lrot NL.<> fourMomentumToLorentzVector (pupTo4mom (pup pinfo))
       e = v ! 0
       px = v ! 1 
@@ -401,59 +385,3 @@ adjustMomSpin (opinfo,rpinfo) = spinAdj spn . boostBack mom
         spn = spinup opinfo * spinup rpinfo 
 
 
--- | 
-
-adjustIdMomSpin :: (PtlInfo,PtlInfo)-> [PtlInfo] -> [PtlInfo]
-adjustIdMomSpin (opinfo,rpinfo) = map (idAdj idfunc . spinAdj spn . boostBack mom) 
-  where mom = pupTo4mom . pup $ opinfo 
-        spn = spinup opinfo * spinup rpinfo 
-        ido = ptlid opinfo 
-        idr = ptlid rpinfo 
-        idfunc x = if x == idr then ido else x
-
--- | 
-
-interwine3 :: Handle -> Maybe (LHEvent,a,b) -> Maybe (LHEvent,a,b) -> Maybe (LHEvent,a,b)
-              -> IO ()
-interwine3 h (Just (lhe1,_,_)) 
-             (Just (lhe2,_,_)) 
-             (Just (lhe3,_,_)) = do 
-  let lhe1' = interwine2 lhe1 lhe2
-      lhe1_final = interwine2 lhe1' lhe3
-  hPutStrLn h (lheFormatOutput lhe1_final)
-
--- | 
-
-interwine2 :: LHEvent -> LHEvent -> LHEvent 
-interwine2 (LHEvent einfo1 pinfos1) (LHEvent einfo2 pinfos2) =  
-  let ptlids1 = map ptlid pinfos1
-      icols1 = filter (/= 0) (concatMap ((\x -> [fst x, snd x]) . icolup )
-                                pinfos1)
-      maxid1 = maximum ptlids1 
-      maxicol1 = maximum icols1 
-      minicol1 = minimum icols1 
-      npinfos2'  = map (adjustIds (idChange (maxid1-1)) (colChange (maxicol1-minicol1+1)))
-                       pinfos2
-      (first1,(n1:rest1)) = getN1 pinfos1
-      pinfos1' = first1 ++ (n1 { istup = 2} : rest1)
-      rn1  = head $ npinfos2' 
-      (_:npinfos2) = adjustIdMomSpin (n1,rn1) . adjustFirst (ptlid n1) $ npinfos2'  
-      npinfos = pinfos1' ++ npinfos2
-      numptls = length npinfos
-      neinfo = einfo1 { nup = numptls }
-  in LHEvent neinfo npinfos 
-
--- | 
-
-chainDecay :: CrossFull -> [PtlInfo] 
-chainDecay = foldr f [] 
-  where f e@(CMLHEvent u c) acc = let (LHEvent _einfo pinfos) = mlhev_orig c
-                                  in pinfos ++ acc 
-
--- |
- 
-getPtlInfosSortedFromCMLHEvent :: ContextMatchedLHEvent -> [PtlInfo]
-getPtlInfosSortedFromCMLHEvent (CMLHEvent u c) =  sortBy (compare `on` ptlid) (inc ++ out ++ int)
-  where inc = map snd (mlhev_incoming c)
-        out = map snd (mlhev_outgoing c)
-        int = mlhev_intermediate c

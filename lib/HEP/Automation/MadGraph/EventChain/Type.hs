@@ -2,15 +2,16 @@
 
 module HEP.Automation.MadGraph.EventChain.Type where
 
-import HEP.Parser.LHEParser.Type
-
+import Control.Applicative
 import qualified Data.IntMap as M
 -- import qualified Data.Map as M
 import Data.List (intercalate)
 import Data.Copointed 
 import Data.Foldable
 import Data.Traversable
-import Control.Applicative
+
+import HEP.Parser.LHEParser.Type
+import HEP.Util.Functions
 
 import Prelude hiding (concatMap,foldr)
 
@@ -168,9 +169,11 @@ data MatchedLHEvent = MLHEvent { mlhev_procid :: ProcessID
                                , mlhev_outgoing :: [(ParticleID,PtlInfo)]
                                , mlhev_intermediate :: [PtlInfo] } 
 
-data ContextMatchedLHEvent = CMLHEvent { upper :: Maybe (MatchedLHEvent,(ParticleID,PDGID,PtlInfo)) -- ^ particle id is for current particle
-                                       , current :: MatchedLHEvent 
-                                       } 
+data ContextMatchedLHEvent = 
+    CMLHEvent 
+    { upper :: Maybe (MatchedLHEvent,(ParticleID,PDGID,PtlInfo)) -- ^ particle id is for current particle 
+    , lorentzXform :: LorentzRotation
+    , current :: MatchedLHEvent } 
 
 -- | 
 
