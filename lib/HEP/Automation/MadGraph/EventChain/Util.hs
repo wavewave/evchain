@@ -2,14 +2,20 @@
 
 module HEP.Automation.MadGraph.EventChain.Util where
 
+import           Data.Conduit
+import qualified Data.Conduit.List as CL
 import qualified Data.IntMap as IM
 import           Data.Vector.Storable ((!))
 import           Numeric.LinearAlgebra (scale,(<>),(<.>))
+import           System.IO
 
 import           HEP.Parser.LHEParser.Type 
+import           HEP.Util.Count 
 import           HEP.Util.Functions
 
 import           HEP.Automation.MadGraph.EventChain.Type
+
+
 
 -- | 
 
@@ -164,5 +170,24 @@ findPTripletUsingPtlIDFrmOutPtls i ev =
         pinfo = snd (head after)
         pdg = idup pinfo 
     in PTriplet i pdg pinfo 
+
+
+-- | 
+
+zipN :: (Monad m) => [Source m a] -> Source m [a]
+zipN = foldr f z0
+  where z0 = CL.sourceList (repeat [])
+
+        f :: (Monad m) => Source m a -> Source m [a] -> Source m [a]
+        f s1 s2 = CL.zip s1 s2 =$= CL.map (\(x,xs)-> x:xs) 
+
+-- | 
+{-
+printIter = CL.mapM_ (liftIO . prtfn) 
+  where prtfn x = do 
+          putStrLn "--------------"
+          print x 
+          putStrLn "=============="
+-}
 
 

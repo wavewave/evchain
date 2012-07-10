@@ -29,9 +29,11 @@ import HEP.Automation.MadGraph.EventChain.Type
 import HEP.Automation.MadGraph.EventChain.LHEConn
 import HEP.Automation.MadGraph.EventChain.Print 
 import HEP.Automation.MadGraph.EventChain.Spec
+import HEP.Automation.MadGraph.EventChain.Util
 
 import Prelude hiding (dropWhile)
 
+{-
 -- | 
 
 zipWithM3 :: (Monad m) => (a -> b -> c -> m d) -> [a] -> [b] -> [c] -> m [d]
@@ -43,6 +45,44 @@ zipWithM3 f xs ys zs = sequence (zipWith3 f xs ys zs)
 zipWithM5 :: (Monad m) => (a -> b -> c -> d -> e -> m f) 
           -> [a] -> [b] -> [c] -> [d] -> [e] -> m [f]
 zipWithM5 f x1s x2s x3s x4s x5s = sequence (zipWith5 f x1s x2s x3s x4s x5s)
+
+-}
+
+-- | 
+
+evtFrmFileSrc :: Int -> Handle -> Source CountIO (Int,LHEvent)
+evtFrmFileSrc procid h = ungzipHandle h =$= lheventIter =$= CL.map (f procid) 
+  where f procid (Just (lhe,_,_)) = (procid,lhe)
+
+
+
+-- | 
+
+assocLHEventWDecayTop :: M.IntMap LHEvent -> IO ()
+assocLHEventWDecayTop m = do
+    let rmatch = matchFullCross m (makeCrossID ppgogo)
+    case rmatch of
+      Left err-> do
+        error err
+      Right fcross -> do 
+        pinfos <- accumTotalEvent fcross 
+        putStrLn $ lheFormatOutput $ LHEvent (EvInfo 0 0 0 0 0 0) pinfos 
+        return ()
+   
+-- | 
+
+assocLHEFileWDecayTop :: M.IntMap FilePath -> IO ()
+assocLHEFileWDecayTop m = do 
+    let lst = M.toList m 
+    srcs <- mapM getsrc lst  
+    let srcfunc = zipN srcs =$= CL.map M.fromList 
+    evalStateT ( srcfunc $$ sinkfunc ) (0 :: Int)
+    return ()
+  where getsrc (k,fname) = do h <- openFile fname ReadMode  
+                              return (evtFrmFileSrc k h)
+
+        sinkfunc = CL.mapM_ (liftIO . assocLHEventWDecayTop)
+
 
 -- | 
 
@@ -82,58 +122,6 @@ filenamemap = M.fromList [ (1,"pp_gogo_events.lhe.gz")
                          -- , (5,"n1_jjjsxxp_run02_events.lhe.gz") ] 
 
 
-
--- | 
-
-evtFrmFileSrc :: Int -> Handle -> Source CountIO (Int,LHEvent)
-evtFrmFileSrc procid h = ungzipHandle h =$= lheventIter =$= CL.map (f procid) 
-  where f procid (Just (lhe,_,_)) = (procid,lhe)
-
-
--- | 
-
-zipN :: (Monad m) => [Source m a] -> Source m [a]
-zipN = foldr f z0
-  where z0 = CL.sourceList (repeat [])
-
-        f :: (Monad m) => Source m a -> Source m [a] -> Source m [a]
-        f s1 s2 = CL.zip s1 s2 =$= CL.map (\(x,xs)-> x:xs) 
-
--- | 
-
-assocLHEventWDecayTop :: M.IntMap LHEvent -> IO ()
-assocLHEventWDecayTop m = do
-    let rmatch = matchFullCross m (makeCrossID ppgogo)
-    case rmatch of
-      Left err-> do
-        error err
-      Right fcross -> do 
-        pinfos <- accumTotalEvent fcross 
-        putStrLn $ lheFormatOutput $ LHEvent (EvInfo 0 0 0 0 0 0) pinfos 
-        return ()
-   
--- | 
-
-assocLHEFileWDecayTop :: M.IntMap FilePath -> IO ()
-assocLHEFileWDecayTop m = do 
-    let lst = M.toList m 
-    srcs <- mapM getsrc lst  
-    let srcfunc = zipN srcs =$= CL.map M.fromList 
-    evalStateT ( srcfunc $$ sinkfunc ) (0 :: Int)
-    return ()
-  where getsrc (k,fname) = do h <- openFile fname ReadMode  
-                              return (evtFrmFileSrc k h)
-
-        sinkfunc = CL.mapM_ (liftIO . assocLHEventWDecayTop)
-
-
--- | 
-
-printIter = CL.mapM_ (liftIO . prtfn) 
-  where prtfn x = do 
-          putStrLn "--------------"
-          print x 
-          putStrLn "=============="
 
 
 
