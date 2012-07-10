@@ -161,7 +161,8 @@ matchFullDecay m ctxt (GDecay elem@(DNode (ptl_id,pkind) proc_id, ds)) =
                            mev <- matchPtl4Decay elem lhe
                            let ptrip = findPTripletUsingPtlIDFrmOutPtls ptl_id momev 
                                lxfrm = relLrntzXfrm ptrip momev
-                           let dctxt = CEvent (olxfrm NL.<> lxfrm) (Just (proc_id,ptrip)) mev 
+                               momprocid = (mlhev_procid.selfEvent) ctxt 
+                           let dctxt = CEvent (olxfrm NL.<> lxfrm) (Just (momprocid,ptrip)) mev 
                            mds <- mapM (matchFullDecay m dctxt) ds
                            return (GDecay (DNode (ptl_id,pdg_id) dctxt, mds)) 
   where momev = selfEvent ctxt
@@ -235,12 +236,10 @@ accumTotalEvent g = do (_,_,result,_) <- execStateT (traverse action g)
                   flipMaybe mmom (id,rmap) 
                       (\(procid,PTriplet pid pcode opinfo) -> 
                           let oid = idChange stid (ptlid rpinfo)
-                              nid = maybe (error "herehere") id (M.lookup (procid,pid) stmm)
+                              nid = maybe (error ("herehere\n" ++ show (procid,pid) ++ "\n" ++ show stmm)) id (M.lookup (procid,pid) stmm)
                               rmap1 = IM.adjust unstabilize nid rmap
                               midadj = motherAdjustID (oid,nid) 
                           in (adjustMom lrot . adjustSpin (opinfo,rpinfo) . midadj , rmap1) )
-
-
 
 
           let (ri,ro,rm,stmm') = adjustPtlInfosInMLHEvent (momf.idfunc,snd) mev stmm
