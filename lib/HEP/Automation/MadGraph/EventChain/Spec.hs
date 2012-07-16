@@ -26,7 +26,17 @@ instance Num (SDecayTop) where
 jet :: SDecayTop 
 jet = GTerminal (TNode MultiJet) 
 
--- | 
+-- |
+ 
+lepton :: SDecayTop
+lepton = GTerminal (TNode MultiLepton)
+
+-- |
+
+neutrino :: SDecayTop
+neutrino = GTerminal (TNode MultiNeutrino)
+
+-- |
 
 ppair :: PDGID -> SDecayTop 
 ppair pdg_id = GTerminal (TNode (PtlPtlbar pdg_id))

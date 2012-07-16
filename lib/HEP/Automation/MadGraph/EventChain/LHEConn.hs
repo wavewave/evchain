@@ -122,7 +122,13 @@ mkSelFunc dir pkind = let f (pdgid',st) = isMatchedStatus st && isMatchedKind pk
                                          || pdg_id' == 3 || pdg_id' == (-3)
                                          || pdg_id' == 4 || pdg_id' == (-4)
                                          || pdg_id' == 21 
-        
+        isMatchedKind MultiLepton pdg_id' = pdg_id' == 11 || pdg_id' == (-11)
+                                         || pdg_id' == 13 || pdg_id' == (-13)
+                                         || pdg_id' == 15 || pdg_id' == (-15)
+	isMatchedKind MultiNeutrino pdg_id' = pdg_id' == 12 || pdg_id' == (-12)
+                                         || pdg_id' == 14 || pdg_id' == (-14)
+                                         || pdg_id' == 16 || pdg_id' == (-16)
+
 -- | 
 
 getSelPair :: InOutDir -> DecayID -> (ParticleID,SelectFunc)

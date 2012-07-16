@@ -17,7 +17,7 @@ import Prelude hiding (concatMap,foldr)
 
 -- | Particle Kind 
 
-data PKind = KPDGID PDGID | MultiJet | PtlPtlbar PDGID 
+data PKind = KPDGID PDGID | MultiJet | MultiLepton | MultiNeutrino | PtlPtlbar PDGID 
              deriving (Show,Eq)
 
 -- | 
