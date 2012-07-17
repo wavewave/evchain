@@ -19,9 +19,9 @@ import HEP.Parser.LHEParser.Type
 
 import System.IO
 
-import           Data.Conduit hiding (sequence)
+import           Data.Conduit -- hiding (sequence)
 import qualified Data.Conduit.List as CL
-import           Data.Conduit.Util.Control as CU (zipStreamWithList,zipSinks3,dropWhile,takeFirstN) 
+import           Data.Conduit.Util.Control as CU (zipStreamWithList,zipSinks3,dropWhile,takeFirstN,zipN,sequence) 
 import           Data.Conduit.Util.Count
 
 
@@ -75,7 +75,7 @@ assocLHEFileWDecayTop :: M.IntMap FilePath -> IO ()
 assocLHEFileWDecayTop m = do 
     let lst = M.toList m 
     srcs <- mapM getsrc lst  
-    let srcfunc = zipN srcs =$= CL.map M.fromList 
+    let srcfunc = CU.zipN srcs =$= CL.map M.fromList 
     evalStateT ( srcfunc $$ sinkfunc ) (0 :: Int)
     return ()
   where getsrc (k,fname) = do h <- openFile fname ReadMode  

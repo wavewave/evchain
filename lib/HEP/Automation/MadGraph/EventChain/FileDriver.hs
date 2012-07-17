@@ -9,7 +9,7 @@ import Control.Monad.State
 -- import Data.Enumerator 
 import Data.Conduit as C
 import qualified Data.Conduit.List as CL 
-import Data.Conduit.Binary hiding (openFile)
+import Data.Conduit.Binary -- hiding (openFile)
 -- import Data.Enumerator.IO
 import Data.Conduit.Util.Control
 import Data.Conduit.Util.Count

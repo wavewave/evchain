@@ -1,5 +1,5 @@
 Name:		evchain
-Version:	0.1
+Version:	0.1.1
 Synopsis:	
 Description: 	
 License: 	BSD3
@@ -20,11 +20,10 @@ Executable evchain
                    base>4, mtl>2, directory, filepath,
                    cmdargs, 
                    containers,
-                   conduit == 0.4.*,
-                   conduit-util,
+                   conduit == 0.5.*,
+                   conduit-util >= 0.2.0.999,
                    HEPUtil,
                    LHEParser,
---                   EventAnalysis >= 0.1.999 && < 0.3,
                    evchain
 
 Library
@@ -37,15 +36,14 @@ Library
                    LHEParser >= 0.2.999,
                    HEPUtil, 
                    xml-types,
-                   conduit,
-                   conduit-util,
-                   zlib-conduit == 0.4.*,
-                   xml-conduit, 
+                   conduit == 0.5.*,
+                   conduit-util >= 0.2.0.999,
+                   zlib-conduit == 0.5.*,
+                   xml-conduit == 1.0.*, 
                    vector, 
                    hmatrix, 
                    pointed == 2.1.*,
                    containers
---                    EventAnalysis >= 0.1.999 && < 0.3
                    
   Exposed-Modules: 
                    HEP.Automation.MadGraph.EventChain.Command

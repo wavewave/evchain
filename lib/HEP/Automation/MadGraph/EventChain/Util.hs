@@ -1,5 +1,20 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
+-----------------------------------------------------------------------------
+-- |
+-- Module      : HEP.Automation.MadGraph.EventChain.Util
+-- Copyright   : (c) 2011, 2012 Ian-Woo Kim
+--
+-- License     : BSD3
+-- Maintainer  : Ian-Woo Kim <ianwookim@gmail.com>
+-- Stability   : experimental
+-- Portability : GHC
+--
+-- Utility functions for evchain
+--
+-----------------------------------------------------------------------------
+
+
 module HEP.Automation.MadGraph.EventChain.Util where
 
 import           Data.Conduit
@@ -171,15 +186,6 @@ findPTripletUsingPtlIDFrmOutPtls i ev =
         pdg = idup pinfo 
     in PTriplet i pdg pinfo 
 
-
--- | 
-
-zipN :: (Monad m) => [Source m a] -> Source m [a]
-zipN = foldr f z0
-  where z0 = CL.sourceList (repeat [])
-
-        f :: (Monad m) => Source m a -> Source m [a] -> Source m [a]
-        f s1 s2 = CL.zip s1 s2 =$= CL.map (\(x,xs)-> x:xs) 
 
 -- | 
 {-
