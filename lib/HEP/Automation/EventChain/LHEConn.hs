@@ -1,28 +1,42 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
+-----------------------------------------------------------------------------
+-- |
+-- Module      : HEP.Automation.MadGraph.EventChain.LHEConn
+-- Copyright   : (c) 2012 Ian-Woo Kim
+--
+-- License     : BSD3
+-- Maintainer  : Ian-Woo Kim <ianwookim@gmail.com>
+-- Stability   : experimental
+-- Portability : GHC
+--
+-- Connecting multiple LHE files 
+--
+-----------------------------------------------------------------------------
+
 module HEP.Automation.MadGraph.EventChain.LHEConn where 
-
-import Control.Applicative ((<$>),(<*>))
-import Control.Monad.State hiding (mapM)
-import Data.Either
-import Data.Foldable (foldr,foldrM)
-import Data.Function (on)
+-- other package of others
+import           Control.Applicative ((<$>),(<*>))
+import           Control.Monad.State hiding (mapM)
+import           Data.Either
+import           Data.Foldable (foldr,foldrM)
+import           Data.Function (on)
 import qualified Data.IntMap as IM
-import Data.List (intercalate, sortBy)
+import           Data.List (intercalate, sortBy)
 import qualified Data.Map as M
-import Data.Traversable 
-import Data.Vector.Storable ((!))
+import           Data.Traversable 
+import           Data.Vector.Storable ((!))
 import qualified Numeric.LinearAlgebra as NL
-import System.IO
-
-import HEP.Parser.LHEParser.Type
-import HEP.Util.Functions
-
-import HEP.Automation.MadGraph.EventChain.Print
-import HEP.Automation.MadGraph.EventChain.Type 
-import HEP.Automation.MadGraph.EventChain.Util
-
-import Prelude hiding (mapM,foldr)
+import           System.IO
+-- other package of mine
+import           HEP.Parser.LHEParser.Type
+import           HEP.Util.Functions
+-- this package
+import           HEP.Automation.MadGraph.EventChain.Print
+import           HEP.Automation.MadGraph.EventChain.Type 
+import           HEP.Automation.MadGraph.EventChain.Util
+-- prelude
+import           Prelude hiding (mapM,foldr)
 
 -- | 
 

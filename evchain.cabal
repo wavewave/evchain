@@ -1,5 +1,5 @@
 Name:		evchain
-Version:	0.1.1
+Version:	0.1.999
 Synopsis:	
 Description: 	
 License: 	BSD3
@@ -7,12 +7,19 @@ License-file:	LICENSE
 Author:		Ian-Woo Kim
 Maintainer: 	Ian-Woo Kim <ianwookim@gmail.com>
 Build-Type: 	Simple
-Cabal-Version:  >= 1.8
+Cabal-Version:  >= 1.9.2
 data-files:     
 
+Test-suite test-evchain 
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is:        test-evchain.hs
+  build-depends:  base>4,
+                  mtl == 2.*, 
+                  evchain
 
-Executable evchain
-  Main-is: evchain.hs
+Executable evchaintemp
+  Main-is: evchaintemp.hs
   hs-source-dirs: exe
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all
@@ -24,11 +31,12 @@ Executable evchain
                    conduit-util >= 0.2.0.999,
                    HEPUtil,
                    LHEParser,
+                   Vec == 1.0.*,
                    evchain
 
 Library
   hs-source-dirs: lib
-  ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
+  ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind -fno-warn-orphans
   ghc-prof-options: -caf-all -auto-all
   Build-Depends: 
                    base>4, mtl>2, directory, filepath,
@@ -43,18 +51,20 @@ Library
                    vector, 
                    hmatrix, 
                    pointed == 2.1.*,
+                   Vec == 1.0.*,
                    containers
                    
   Exposed-Modules: 
-                   HEP.Automation.MadGraph.EventChain.Command
-                   HEP.Automation.MadGraph.EventChain.FileDriver
-                   HEP.Automation.MadGraph.EventChain.Job
-                   HEP.Automation.MadGraph.EventChain.LHEConn
-                   HEP.Automation.MadGraph.EventChain.Print
-                   HEP.Automation.MadGraph.EventChain.ProgType
-                   HEP.Automation.MadGraph.EventChain.Spec
-                   HEP.Automation.MadGraph.EventChain.Type
-                   HEP.Automation.MadGraph.EventChain.Util
+--                    HEP.Automation.MadGraph.EventChain.Command
+--                  HEP.Automation.MadGraph.EventChain.FileDriver
+--                   HEP.Automation.MadGraph.EventChain.Job
+--                   HEP.Automation.MadGraph.EventChain.LHEConn
+--                   HEP.Automation.MadGraph.EventChain.Print
+--                   HEP.Automation.MadGraph.EventChain.ProgType
+                   HEP.Automation.EventChain.SpecDSL
+                   HEP.Automation.EventChain.Type.Skeleton
+                   HEP.Automation.EventChain.Type.Spec                   
+--                   HEP.Automation.MadGraph.EventChain.Util
   Other-Modules: 
 
  
