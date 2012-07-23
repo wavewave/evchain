@@ -1,5 +1,5 @@
 {-# LANGUAGE GADTs, EmptyDataDecls, FlexibleInstances, StandaloneDeriving,
-             TypeSynonymInstances, RankNTypes #-}
+             TypeSynonymInstances, RankNTypes, TypeOperators #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -17,96 +17,42 @@
 
 module HEP.Automation.EventChain.Type.Spec where
 
+-- import Data.Vec 
+
 import HEP.Parser.LHEParser.Type (PDGID)
+-- import HEP.Automation.EventChain.Type.CVec
 import HEP.Automation.EventChain.Type.Skeleton
 
 type ProcessID = Int
 
-type SCross = Cross () (CVec PDGID) (CVec PDGID)
+type SCross = Cross () [PDGID] [PDGID]
 
-type SDecay = Decay (CVec PDGID) (CVec PDGID)
+type SDecay = Decay [PDGID] [PDGID]
 
-type SPCross = Cross ProcessID (CVec2 PDGID ProcessID) (CVec PDGID) 
+type SPCross p = Cross p [(p,PDGID)] [PDGID]
 
+type SPDecay p = Decay [(p,PDGID)] [PDGID] 
 
-
-
-{-
--- | 
-
-type PDGID = Int 
+data ProcSet p s d = ProcSet { process :: p 
+                             , set :: s 
+                             , detail :: d } 
 
 
--- | 
 
-data Cardinality = Single | Dual | Multiple 
-
-
--- | 
-
-data PKind (c :: Cardinality) where 
-  KPDGID        :: PDGID -> PKind Single
-  MultiJet      :: PKind Multiple
-  MultiLepton   :: PKind Multiple 
-  MultiNeutrino :: PKind Multiple  
-  PtlPtlbar     :: PDGID -> PKind Dual 
-
--- | 
-
-data Collection (c :: Cardinality) a where
-  Singlet :: a -> Collection Single a 
-  Duet :: a -> a -> Collection Dual a 
-  List :: [a] -> Collection Multiple a  
-
--}
-
-{-
-
-type SDecayTop = GDecayTop DNode TNode PKindWrapper ProcessID
-
-type SCross = forall a. GCross XNode DNode TNode PKindWrapper ProcessID 
-
-instance Num (SDecayTop) where
-  _ + _ = error " no + defined for SDecayTop"
-  -- _ - _ = error " no - defined for SDecayTop"
-  negate (GTerminal (TNode (KPDGID n))) = GTerminal (TNode (KPDGID (-n)))
-  negate _ = error " no negate defined for SDecayTop in general"
-  _ * _ = error " no * defined for SDecayTop"
-  abs _ = error " no abs defined for SDecayTop"
-  signum _ = error " no signum defined for SDecayTop"  
-  fromInteger n = GTerminal (TNode (PKindWrapper (KPDGID (fromInteger n))))
-
--- | 
-
-jet :: SDecayTop 
-jet = GTerminal (TNode (PKindWrapper MultiJet))
-
--- |
  
-lepton :: SDecayTop
-lepton = GTerminal (TNode (PKindWrapper MultiLepton))
+instance Num (Decay a [PDGID] ) where
+  _ + _ = error " no + defined for SDecay"
+  negate (MkT [n]) = MkT [-n]
+  negate _ = error " no negate defined for SDecay in general" 
+  _ * _ = error " no * defined for SDecay"
+  abs _ = error " no abs defined for SDecay"
+  signum _ = error " no signum defined for SDecay"  
+  fromInteger n = MkT [fromInteger n]
 
--- |
 
-neutrino :: SDecayTop
-neutrino = GTerminal (TNode (PKindWrapper MultiNeutrino))
 
--- |
 
-ppair :: PDGID -> SDecayTop 
-ppair pdg_id = GTerminal (TNode (PKindWrapper (PtlPtlbar pdg_id)))
-
--- | 
-
-x :: ProcessID -> (SDecayTop,SDecayTop,[SDecayTop]) -> SCross
-x procid (a,b,ys) =  GCross (XNode procid) [a,b] ys 
-
--- |
-
-d :: ProcessID -> (PKind,[SDecayTop]) -> SDecayTop 
-d procid (a,ys) = GDecay (DNode a procid,ys)
-
--- | 
+{- 
 
 makeDecayID :: ParticleID -> SDecayTop -> DecayID
 makeDecayID idnum (GTerminal (TNode n)) = GTerminal (TNode (idnum,n))

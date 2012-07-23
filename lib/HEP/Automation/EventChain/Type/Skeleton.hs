@@ -2,7 +2,8 @@
              ExistentialQuantification, MultiParamTypeClasses, 
              ConstraintKinds, TypeSynonymInstances, FlexibleInstances, 
              FlexibleContexts, RecordWildCards, 
-             ScopedTypeVariables, Rank2Types #-}
+             ScopedTypeVariables, Rank2Types, GeneralizedNewtypeDeriving, 
+             StandaloneDeriving #-}
 -- ViewPatterns 
 
 -----------------------------------------------------------------------------
@@ -45,12 +46,15 @@ data Cross x d t = MkC { xnode :: x
                        , xincs :: (Decay d t, Decay d t) 
                        , xouts :: [Decay d t] } 
 
+deriving instance (Eq x,Eq d, Eq t) => Eq (Cross x d t)
 
 -- | 
 
 data Decay d t = MkD { dnode :: d   
                      , douts :: [Decay d t] } 
                | MkT { tnode :: t }
+
+deriving instance (Eq d, Eq t) => Eq (Decay d t) 
 
 -- | general pullback definition
 
@@ -204,6 +208,8 @@ instance Traversable (CrossF b) where
           travf = liftA unDecayF . traverse f . DecayF 
 
 
+
+{-
 -- | existentially wrapped type-safe collection of arbitrary length 
 
 data CVec a  = forall n v. (Vec.Fold v a, Vec.Vec n a v) => MkCVec v 
@@ -216,7 +222,7 @@ data CVec2 a b = forall n v1 v2. (Vec.Vec n a v1, Vec.Vec n b v2) => MkCVec2 v1 
 -- 
 -- zipCVec2 :: CVec2 a b -> CVec (a,b)
 -- zipCVec2 (MkCVec2 v1 v2) = MkCVec (Vec.zipWith (,) v1 v2)
-
+-}
 
 {-
 data C2Node b a = forall t. Mk2Node (Collection t b, Collection t a)

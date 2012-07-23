@@ -4,6 +4,8 @@ import Control.Monad.Identity
 import Control.Monad.Error
 import System.Exit (exitFailure, exitSuccess)
 
+import Test.EventChain.SpecTest
+
 main :: IO ()
 main = do 
     putStrLn "test-evchain:"
@@ -22,17 +24,17 @@ guardMsg msg act = do b <- lift act
 
 testPure :: ErrorT String Identity () 
 testPure = do 
-    guardMsg "fail test1" (return test1) 
+    guardMsg "fail spec1x_test" (return spec1x_test) 
+    guardMsg "fail spec2x_test" (return spec2x_test)
 
 
-test1 = True
 
 testIO :: ErrorT String IO () 
 testIO = do 
     guardMsg "fail testIO1" testIO1
 
 testIO1 :: IO Bool 
-testIO1 = return False
+testIO1 = return True
 
 
 

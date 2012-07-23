@@ -62,6 +62,7 @@ Library
 --                   HEP.Automation.MadGraph.EventChain.Print
 --                   HEP.Automation.MadGraph.EventChain.ProgType
                    HEP.Automation.EventChain.SpecDSL
+                   HEP.Automation.EventChain.Type.CVec
                    HEP.Automation.EventChain.Type.Skeleton
                    HEP.Automation.EventChain.Type.Spec                   
 --                   HEP.Automation.MadGraph.EventChain.Util
