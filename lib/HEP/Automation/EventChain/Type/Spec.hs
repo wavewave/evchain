@@ -17,28 +17,63 @@
 
 module HEP.Automation.EventChain.Type.Spec where
 
--- import Data.Vec 
-
+-- from other hep-platform packages 
 import HEP.Parser.LHEParser.Type (PDGID)
--- import HEP.Automation.EventChain.Type.CVec
+-- from this package
 import HEP.Automation.EventChain.Type.Skeleton
+
+-- | process id for identifying LHE files
 
 type ProcessID = Int
 
+-- | status : -1 : incoming, 1 : outgoing, 2 : intermediate
+
+type Status = Int
+
+-- | 
+
+statusIn :: Status
+statusIn = -1 
+
+-- | 
+
+statusOut :: Status
+statusOut = 1
+
+-- | 
+
+statusIntermediate :: Status
+statusIntermediate = 2
+
+
+-- | particle id in a given LHE file. (different from PDGID)
+
+type ParticleID = Int
+
+-- |
+
 type SCross = Cross () [PDGID] [PDGID]
+
+-- |
 
 type SDecay = Decay [PDGID] [PDGID]
 
+-- | 
+
 type SPCross p = Cross p [(p,PDGID)] [PDGID]
 
+-- | 
+
 type SPDecay p = Decay [(p,PDGID)] [PDGID] 
+
+-- |
 
 data ProcSet p s d = ProcSet { process :: p 
                              , set :: s 
                              , detail :: d } 
 
 
-
+-- |
  
 instance Num (Decay a [PDGID] ) where
   _ + _ = error " no + defined for SDecay"

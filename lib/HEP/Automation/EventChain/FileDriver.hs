@@ -1,12 +1,40 @@
 {-# LANGUAGE ScopedTypeVariables, RecordWildCards, Rank2Types, ExistentialQuantification #-}
 
-module HEP.Automation.MadGraph.EventChain.FileDriver where
+module HEP.Automation.EventChain.FileDriver where
 
-import Control.Monad.Trans
+-- from other packages 
+import           Data.Conduit
+import           Data.Conduit.Binary
+import qualified Data.Conduit.List as CL
+import           Data.Conduit.Zlib
+import           Data.Maybe 
+import           System.IO
+import           Text.XML.Stream.Parse
+-- from other hep-platform packages 
+import           Data.Conduit.Util.Count
+import           HEP.Util.Count 
+-- from this package
+import           HEP.Parser.LHEParser.Type
+import           HEP.Parser.LHEParser.Parser.Conduit
+
+
+-- | get parsed LHEvent from a ungzipped lhe file. 
+
+evtsHandle :: Bool  -- ^ is zipped 
+           -> Handle 
+           -> Source IO (Maybe LHEvent)
+evtsHandle f h 
+    | f     = sourceHandle h =$= ungzip =$= parseBytes def =$= parseEvent
+    | not f = sourceHandle h =$= parseBytes def =$= parseEvent 
+
+
+
+{-
 
 import Control.Monad.State
+import Control.Monad.Trans
 
--- import Data.Enumerator 
+
 import Data.Conduit as C
 import qualified Data.Conduit.List as CL 
 import Data.Conduit.Binary -- hiding (openFile)
@@ -28,7 +56,6 @@ import Text.XML.Conduit.Parse.Util
 
 -- import HEP.Automation.EventAnalysis.Print
 
-import Data.Conduit.Zlib
 
 
 -- import HROOT
@@ -100,4 +127,6 @@ data SingleFileAnalysis =
   { datafile :: FilePath
   , countfunc :: forall a b m. (MonadIO m) => DecayTopSink a b m () 
   }
+-}
+
 -}

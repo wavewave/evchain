@@ -8,7 +8,7 @@ Author:		Ian-Woo Kim
 Maintainer: 	Ian-Woo Kim <ianwookim@gmail.com>
 Build-Type: 	Simple
 Cabal-Version:  >= 1.9.2
-data-files:     
+data-files:     test/resources/*
 
 Test-suite test-evchain 
   type:           exitcode-stdio-1.0
@@ -16,6 +16,13 @@ Test-suite test-evchain
   main-is:        test-evchain.hs
   build-depends:  base>4,
                   mtl == 2.*, 
+                  filepath == 1.3.*,
+                  directory == 1.1.*,
+                  conduit == 0.5.*,
+                  xml-conduit == 1.0.*, 
+                  conduit-util >= 0.2.0.999 && < 0.2.2,
+                  HEPUtil >= 0.1.999 && < 0.3,
+                  LHEParser >= 0.2.999 && < 0.4,
                   evchain
 
 Executable evchaintemp
@@ -56,11 +63,13 @@ Library
                    
   Exposed-Modules: 
 --                    HEP.Automation.MadGraph.EventChain.Command
---                  HEP.Automation.MadGraph.EventChain.FileDriver
+
 --                   HEP.Automation.MadGraph.EventChain.Job
 --                   HEP.Automation.MadGraph.EventChain.LHEConn
 --                   HEP.Automation.MadGraph.EventChain.Print
 --                   HEP.Automation.MadGraph.EventChain.ProgType
+                   HEP.Automation.EventChain.FileDriver
+                   HEP.Automation.EventChain.Match
                    HEP.Automation.EventChain.SpecDSL
                    HEP.Automation.EventChain.Type.CVec
                    HEP.Automation.EventChain.Type.Skeleton

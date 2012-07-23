@@ -1,14 +1,13 @@
-module Test.EventChain.SpecTest where 
+module Test.EventChain.Spec where 
 
+import Data.Foldable
+import Data.Traversable
+-- 
 import HEP.Automation.EventChain.SpecDSL
 import HEP.Automation.EventChain.Type.Skeleton
 import HEP.Automation.EventChain.Type.Spec
 import HEP.Automation.EventChain.Type.CVec
-
-import Data.Foldable
-import Data.Traversable
--- import Data.Vec hiding (foldr)
-
+--
 import Prelude hiding (foldr)
 
 
