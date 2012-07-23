@@ -52,22 +52,7 @@ type ParticleCoordMap = M.Map ParticleCoord PtlID
 
 
 
--- | match incoming and outgoing particles with a given id set from a given 
---   event file
 
-matchInOut :: ProcessID 
-           -> ([(ParticleID,SelectFunc)],[(ParticleID,SelectFunc)]) 
-           -> LHEvent 
-           -> Either String MatchedLHEvent
-matchInOut procid (incids,outids) ev@(LHEvent einfo pinfos) = do 
-    (matched_inc,remaining)  <- matchAllPtlWSelect incids pinfos
-    (matched_out,remaining') <- matchAllPtlWSelect outids remaining
-    return (MLHEvent procid ev einfo matched_inc matched_out remaining')
-
--- | 
-
-data InOutDir = In | Out 
-              deriving Show 
 
 -- | 
 

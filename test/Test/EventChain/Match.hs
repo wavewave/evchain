@@ -14,10 +14,12 @@ import           HEP.Parser.LHEParser.Type
 -- from this package 
 import           HEP.Automation.EventChain.FileDriver 
 import           HEP.Automation.EventChain.Match 
+import           HEP.Automation.EventChain.Type.Match
 import           HEP.Automation.EventChain.Type.Spec
 -- 
 import           Paths_evchain
 import           Test.EventChain.Common 
+import           Debug.Trace 
 
 -- | 
 
@@ -41,6 +43,7 @@ test_matchs ev = do
   guardMsg "fail in test_match" (return . test_match $ ev)
   guardMsg "fail in test_match2" (return . test_match2 $ ev)
   guardMsg "fail in test_match3" (return . test_match3 $ ev)
+  guardMsg "fail in test_match4" (return . test_match4 $ ev)
 
 -- |
 
@@ -59,9 +62,20 @@ test_selector = SelectFunc f "outgoing gluino"
 -- | 
 
 test_selectorlst :: [(ParticleID,SelectFunc)]
-test_selectorlst = [(1,test_selector),(2,test_selector)] 
+test_selectorlst = [(3,test_selector),(4,test_selector)] 
 
 -- | 
+
+test_gluon :: SelectFunc 
+test_gluon = SelectFunc f "incoming gluon" 
+  where f (21,-1) = True 
+        f _ = False 
+
+-- | 
+
+test_selectinc = [(1,test_gluon),(2,test_gluon)]
+
+
 
 test_match2 :: LHEvent -> Bool 
 test_match2 ev = (isJust . fst) (findPtlWSelect (test_selector) (lhe_ptlinfos ev))
@@ -71,3 +85,11 @@ test_match2 ev = (isJust . fst) (findPtlWSelect (test_selector) (lhe_ptlinfos ev
 
 test_match3 :: LHEvent -> Bool 
 test_match3 ev = either (const False) (const True) (matchAllPtlWSelect test_selectorlst (lhe_ptlinfos ev))
+
+-- | 
+
+test_match4 :: LHEvent -> Bool 
+test_match4 ev = either (\msg -> trace msg False) (const True) matched
+
+  where matched = matchInOut 0 (test_selectinc,test_selectorlst) ev 
+        

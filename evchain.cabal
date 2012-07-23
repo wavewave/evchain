@@ -71,7 +71,8 @@ Library
                    HEP.Automation.EventChain.FileDriver
                    HEP.Automation.EventChain.Match
                    HEP.Automation.EventChain.SpecDSL
-                   HEP.Automation.EventChain.Type.CVec
+--                    HEP.Automation.EventChain.Type.CVec
+                   HEP.Automation.EventChain.Type.Match 
                    HEP.Automation.EventChain.Type.Skeleton
                    HEP.Automation.EventChain.Type.Spec                   
 --                   HEP.Automation.MadGraph.EventChain.Util

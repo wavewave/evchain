@@ -46,6 +46,11 @@ statusIntermediate :: Status
 statusIntermediate = 2
 
 
+-- | tag for incoming / outgoing direction
+
+data InOutDir = In | Out 
+              deriving Show 
+
 -- | particle id in a given LHE file. (different from PDGID)
 
 type ParticleID = Int

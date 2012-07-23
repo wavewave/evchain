@@ -21,6 +21,7 @@ import           Data.Foldable (foldrM)
 -- other hep-platform package 
 import           HEP.Parser.LHEParser.Type
 -- from this package
+import           HEP.Automation.EventChain.Type.Match
 import           HEP.Automation.EventChain.Type.Spec
 
 -- | match function type to find a particle with a given pdgid and 
@@ -55,4 +56,18 @@ matchAllPtlWSelect ls pinfos = foldrM f ([],pinfos) ls
           case findPtlWSelect sel remaining of
             (Nothing,_)             -> Left ((description sel) ++ " cannot be found.")
             (Just pinfo,remaining') -> return ((pid,pinfo):done,remaining')
+
+
+-- | match incoming and outgoing particles with a given id set from a given 
+--   event file
+
+matchInOut :: ProcessID 
+           -> ([(ParticleID,SelectFunc)],[(ParticleID,SelectFunc)]) 
+           -> LHEvent 
+           -> Either String MatchedLHEvent
+matchInOut procid (incids,outids) ev@(LHEvent einfo pinfos) = do 
+    (matched_inc,remaining)  <- matchAllPtlWSelect incids pinfos
+    (matched_out,remaining') <- matchAllPtlWSelect outids remaining
+    return (MLHEvent procid ev einfo matched_inc matched_out remaining')
+
 

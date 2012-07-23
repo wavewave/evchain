@@ -6,7 +6,6 @@ import Data.Traversable
 import HEP.Automation.EventChain.SpecDSL
 import HEP.Automation.EventChain.Type.Skeleton
 import HEP.Automation.EventChain.Type.Spec
-import HEP.Automation.EventChain.Type.CVec
 --
 import Prelude hiding (foldr)
 
