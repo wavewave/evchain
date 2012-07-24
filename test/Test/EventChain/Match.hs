@@ -2,6 +2,7 @@ module Test.EventChain.Match where
 
 -- from other packages from others
 import           Control.Monad.Error
+import           Control.Monad.State
 import           Data.Conduit
 import qualified Data.Conduit.List as CL
 import           Data.Either (either)
@@ -43,7 +44,7 @@ test_matchs ev = do
   guardMsg "fail in test_match" (return . test_match $ ev)
   guardMsg "fail in test_match2" (return . test_match2 $ ev)
   guardMsg "fail in test_match3" (return . test_match3 $ ev)
-  guardMsg "fail in test_match4" (return . test_match4 $ ev)
+--  guardMsg "fail in test_match4" (return . test_match4 $ ev)
 
 -- |
 
@@ -76,20 +77,24 @@ test_gluon = SelectFunc f "incoming gluon"
 test_selectinc = [(1,test_gluon),(2,test_gluon)]
 
 
+-- | 
 
 test_match2 :: LHEvent -> Bool 
-test_match2 ev = (isJust . fst) (findPtlWSelect (test_selector) (lhe_ptlinfos ev))
-
+test_match2 ev = either (const False) (const True)
+                   (evalState (runErrorT (findPtl test_selector)) (lhe_ptlinfos ev)) 
 
 -- | 
 
 test_match3 :: LHEvent -> Bool 
-test_match3 ev = either (const False) (const True) (matchAllPtlWSelect test_selectorlst (lhe_ptlinfos ev))
+test_match3 ev = either (const False) (const True) 
+                   (evalState (runErrorT (findPtls test_selectorlst)) (lhe_ptlinfos ev))
 
+{-
 -- | 
 
 test_match4 :: LHEvent -> Bool 
 test_match4 ev = either (\msg -> trace msg False) (const True) matched
 
   where matched = matchInOut 0 (test_selectinc,test_selectorlst) ev 
-        
+-}      
+

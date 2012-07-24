@@ -71,11 +71,32 @@ type SPCross p = Cross p [(p,PDGID)] [PDGID]
 
 type SPDecay p = Decay [(p,PDGID)] [PDGID] 
 
+{-
 -- |
 
 data ProcSet p s d = ProcSet { process :: p 
                              , set :: s 
                              , detail :: d } 
+-}
+
+-- | process and selection function pair  
+
+data ProcPDG = ProcPDG { proc_procid :: ProcessID
+                       , proc_pdgid :: PDGID } 
+
+-- | 
+
+data PtlProcPDG = PtlPDGProc { ptl_ptlid :: ParticleID 
+                             , ptl_procs :: [ProcPDG] }
+
+-- | type for cross process with only ids 
+
+type CrossID = Cross ProcessID PtlProcPDG [PDGID]
+
+-- | type for decay process with only ids
+
+type DecayID = Decay PtlProcPDG [PDGID]
+
 
 
 -- |

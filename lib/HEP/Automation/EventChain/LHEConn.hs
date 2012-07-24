@@ -43,53 +43,7 @@ import           Prelude hiding (mapM,foldr)
 type Status = Int
 
 
--- | 
 
-type ParticleCoord = (ProcessID,ParticleID)
-
-type ParticleCoordMap = M.Map ParticleCoord PtlID 
-
-
-
-
-
-
--- | 
-
-matchPtl4Cross :: CrossID
-               -> LHEvent
-               -> Either String MatchedLHEvent 
-matchPtl4Cross (GCross (XNode procid) inc out) lhe = matchInOut procid (incids,outids) lhe
-  where incids = map (getSelPair In)  inc
-        outids = map (getSelPair Out) out 
-
--- |
-
-mkSelFunc :: InOutDir -> PKind -> SelectFunc
-mkSelFunc dir pkind = let f (pdgid',st) = isMatchedStatus st && isMatchedKind pkind pdgid'
-                      in SelectFunc f ("(pkind = " ++ show pkind ++ "," ++ show dir ++ ")")
-  where isMatchedStatus st = case dir of 
-                               In -> st == statusIn 
-                               Out -> st == statusOut
-        isMatchedKind (KPDGID pdg_id) pdg_id' = pdg_id == pdg_id'
-        isMatchedKind (PtlPtlbar pdg_id) pdg_id' = pdg_id == pdg_id' || pdg_id == (-pdg_id')
-        isMatchedKind MultiJet pdg_id' = pdg_id' == 1 || pdg_id' == (-1)
-                                         || pdg_id' == 2 || pdg_id' == (-2)
-                                         || pdg_id' == 3 || pdg_id' == (-3)
-                                         || pdg_id' == 4 || pdg_id' == (-4)
-                                         || pdg_id' == 21 
-        isMatchedKind MultiLepton pdg_id' = pdg_id' == 11 || pdg_id' == (-11)
-                                         || pdg_id' == 13 || pdg_id' == (-13)
-                                         || pdg_id' == 15 || pdg_id' == (-15)
-	isMatchedKind MultiNeutrino pdg_id' = pdg_id' == 12 || pdg_id' == (-12)
-                                         || pdg_id' == 14 || pdg_id' == (-14)
-                                         || pdg_id' == 16 || pdg_id' == (-16)
-
--- | 
-
-getSelPair :: InOutDir -> DecayID -> (ParticleID,SelectFunc)
-getSelPair dir x = let (pid,pkind) = getContent x  
-                   in (pid,mkSelFunc dir pkind)
 
 
 
@@ -129,12 +83,6 @@ matchFullDecay m ctxt (GDecay elem@(DNode (ptl_id,pkind) proc_id, ds)) =
                            return (GDecay (DNode (ptl_id,pdg_id) dctxt, mds)) 
   where momev = selfEvent ctxt
         olxfrm = absoluteContext ctxt
-
---         findParticleID (i,pdg) y = let (_,after) = break (\x->fst x == i) (mlhev_outgoing y)  
---                                    in (i,pdg,snd (head after))
-
-
-
 
 -- | 
 
@@ -213,45 +161,12 @@ accumTotalEvent g = do (_,_,result,_) <- execStateT (traverse action g)
               rmap4 = insertAll krm rmap3 
           put (stid+maxid-1,stcol+maxicol-minicol+1-coloffset,rmap4,stmm')
 
-{-
-case mptrip of 
-            Nothing -> return (id,rmap)
-            Just (ev,(pid,pcode,opinfo)) -> liftIO $ do  
-              let rpinfo = (snd . head . mlhev_incoming . current ) cmlhev
-                  oid = idChange stid (ptlid rpinfo)
-                  nid = case M.lookup (mlhev_procid ev,pid) stmm of
-                          Nothing -> error " herehere " 
-                          Just n -> n 
-                  unstabilize pinfo = pinfo { istup = 2 } 
-                  rmap1 = IM.adjust unstabilize nid rmap
-                  midadj = motherAdjustID (oid,nid) 
-
-              return $ (adjustMomSpin (opinfo,rpinfo) . midadj , rmap1)
--}
-
-
 
 
 -- | 
 
 motherAdjustID :: (PtlID,PtlID) -> PtlInfo -> PtlInfo
 motherAdjustID (oid,nid) = idAdj (\y -> if y == oid then nid else y)
-
-
-{-
--- | 
-
-checkHigh :: CrossFull -> IO ()
-checkHigh g = do execStateT (traverse action g) (([],[]) :: ([(ParticleID,PtlID)],[(ParticleID,PtlID)]) )
-                 return () 
-  where action x = do 
-          st <- get  
-          liftIO $ putStrLn "-*-*-*-"
-          liftIO $ putStrLn $ show st
-          liftIO $ putStrLn $ "length of incoming = " ++ (show (length (mlhev_incoming (current x))))
-          put (extractIDsFromMLHE (current x)) 
-
--}
 
 
 -- | 
