@@ -51,6 +51,7 @@ statusIntermediate = 2
 data InOutDir = In | Out 
               deriving Show 
 
+
 -- | particle id in a given LHE file. (different from PDGID)
 
 type ParticleID = Int
@@ -91,11 +92,11 @@ data PtlProcPDG = PtlProcPDG { ptl_ptlid :: ParticleID
 
 -- | type for cross process with only ids 
 
-type CrossID = Cross ProcessID PtlProcPDG [PDGID]
+type CrossID = Cross ProcessID PtlProcPDG (ParticleID,[PDGID])
 
 -- | type for decay process with only ids
 
-type DecayID = Decay PtlProcPDG [PDGID]
+type DecayID = Decay PtlProcPDG (ParticleID,[PDGID])
 
 
 

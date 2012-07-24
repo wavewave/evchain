@@ -42,16 +42,17 @@ test_lhe = do
 test_matchs :: LHEvent -> ErrorT String IO ()
 test_matchs ev = do 
   guardMsg "fail in test_match" (return . test_match $ ev)
-  guardMsg "fail in test_match2" (return . test_match2 $ ev)
-  guardMsg "fail in test_match3" (return . test_match3 $ ev)
-  guardMsg "fail in test_match4" (return . test_match4 $ ev)
+  -- guardMsg "fail in test_match2" (return . test_match2 $ ev)
+  -- guardMsg "fail in test_match3" (return . test_match3 $ ev)
+  -- guardMsg "fail in test_match4" (return . test_match4 $ ev)
+
 
 -- |
 
 test_match :: LHEvent -> Bool 
 test_match ev = length (lhe_ptlinfos ev) == 4 
   
-
+{-
 -- | 
 
 test_selector :: SelectFunc
@@ -91,9 +92,11 @@ test_match3 ev = either (const False) (const True)
 
 -- | 
 
+
 test_match4 :: LHEvent -> Bool 
 test_match4 ev = either (\msg -> trace msg False) (const True) matched
 
   where matched = matchInOut 0 (test_selectinc,test_selectorlst) ev 
       
+-}
 

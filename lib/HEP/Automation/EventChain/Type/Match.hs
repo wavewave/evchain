@@ -45,15 +45,34 @@ data PtlProcSel = PtlProcSel { ptlsel_ptlid :: ParticleID
 -- | Matching Monad 
 
 type MatchM = ErrorT String (State [PtlInfo]) 
+ 
+
+-- | 
+
+data MatchInOut = 
+  MIO { mio_incoming :: [Either (ParticleID,PtlInfo) (ParticleID,(ProcessID,PtlInfo))]
+      , mio_outgoing :: [Either (ParticleID,PtlInfo) (ParticleID,(ProcessID,PtlInfo))]
+      , mio_remaining :: [PtlInfo]
+      } 
 
 -- | data type for a single LHE event matched with a specified process node 
 
-data MatchedLHEvent = MLHEvent { mlhev_procid :: ProcessID
-                               , mlhev_orig :: LHEvent 
-                               , mlhev_einfo :: EventInfo
-                               , mlhev_incoming :: [(ParticleID,PtlInfo)]
-                               , mlhev_outgoing :: [(ParticleID,PtlInfo)]
-                               , mlhev_intermediate :: [PtlInfo] } 
+data MatchedLHEvent tnode dnode = 
+         MLHEvent { mlhev_procid :: ProcessID 
+                  , mlhev_orig :: LHEvent 
+                  , mlhev_einfo :: EventInfo
+                  , mlhev_incoming :: [(Either tnode dnode, PtlInfo)]
+                  , mlhev_outgoing :: [(Either tnode dnode, PtlInfo)]
+                  , mlhev_intermediate :: [PtlInfo] } 
+
+
+-- -- | default type for MatchedLHEvent 
+
+-- type MatchedLHEventSimple = MatchedLHEvent ParticleID 
+
+-- | MatchedLHEvent with Decay structure 
+
+type MatchedLHEventProcess = MatchedLHEvent ParticleID (ParticleID,ProcessID) 
 
 -- | coordinate for a particle in a given collection of processes 
 
