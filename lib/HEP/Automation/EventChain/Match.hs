@@ -34,45 +34,41 @@ import           HEP.Automation.EventChain.Type.Spec
 
 -- | match a particle using a selection criterion
 
-findPtl :: SelectFunc                 -- ^ selector function 
-           -> MatchM PtlInfo 
-findPtl sel = do 
+findPtlBy :: SelectFunc                 -- ^ selector function 
+             -> MatchM PtlInfo 
+findPtlBy sel = do 
     (pinfos1,pinfos2) <- return . break (selectFunc sel . ((,) <$> idup <*> istup)) =<< lift get 
     if null pinfos2 
       then fail  ("not found when " ++ description sel)
       else (lift . put) (pinfos1 ++ tail pinfos2) >> return (head pinfos2)
 
+
 -- | sequentially finding all particles by a list of selection criterions
 
 findPtls:: [(ParticleID,SelectFunc)] -> MatchM [(ParticleID,PtlInfo)]
-findPtls lst = return . zip (map fst lst) =<<  mapM (findPtl.snd) lst
+findPtls lst = return . zip (map fst lst) =<<  mapM (findPtlBy.snd) lst
         
-{-
 
-           -> [PtlInfo]
-                   -> Either String ([(ParticleID,PtlInfo)],[PtlInfo]) 
-                          -- ^ error monad, returning matched with ParticleId 
-                          --   and unmatched (no id) 
-matchAllPtlWSelect ls pinfos = foldrM f ([],pinfos) ls
-  where f (pid,sel) (done,remaining) = 
-          case findPtlWSelect sel remaining of
-            (Nothing,_)             -> Left ((description sel) ++ " cannot be found.")
-            (Just pinfo,remaining') -> return ((pid,pinfo):done,remaining')
 
--}
-
-{-
 -- | match incoming and outgoing particles with a given id set from a given 
 --   event file
 
 matchInOut :: ProcessID 
-           -> ([PtlProcSel],[PtlProcSel]) 
+           -> ([(ParticleID,SelectFunc)],[(ParticleID,SelectFunc)]) 
            -> LHEvent 
            -> Either String MatchedLHEvent
-matchInOut procid (incids,outids) ev@(LHEvent einfo pinfos) = do 
-    (matched_inc,remaining)  <- matchAllPtlWSelect incids pinfos
-    (matched_out,remaining') <- matchAllPtlWSelect outids remaining
-    return (MLHEvent procid ev einfo matched_inc matched_out remaining')
+matchInOut procid (is,os) ev@(LHEvent einfo pinfos) = evalState match pinfos 
+  where match :: State [PtlInfo] (Either String MatchedLHEvent)
+        match = runErrorT $ do 
+                  iinfos <- findPtls is
+                  oinfos <- findPtls os 
+                  lift get >>= return . MLHEvent procid ev einfo iinfos oinfos
+
+
+
+
+
+{-
 
 
 -- | 
@@ -80,9 +76,10 @@ matchInOut procid (incids,outids) ev@(LHEvent einfo pinfos) = do
 matchPtl4Cross :: CrossID
                -> LHEvent
                -> Either String MatchedLHEvent 
-matchPtl4Cross (MkC procid inc out) lhe = matchInOut procid (incids,outids) lhe
-  where incids = map (getSelPair In)  inc
-        outids = map (getSelPair Out) out 
+matchPtl4Cross (MkC procid (inc1,inc2) out) lhe = matchInOut procid (incids,outids) lhe
+  where pairPtlSel = (,) <$> ptlsel_ptlid <*> (procsel_sel . ptlsel_procsels)
+        incids = map (pairPtlSel . getPtlProcSel In)  [inc1,inc2]
+        outids = map (pairPtlSel . getPtlProcSel Out) out 
 
 -- | make a select function for one PDGID
 
@@ -95,8 +92,9 @@ mk1Sel dir pdgid = let f (pdgid',st) = isMatchedStatus st && pdgid' == pdgid
 
 -- | 
 
-getSelPair :: InOutDir -> DecayID -> (ParticleID,[(ProcessID,SelectFunc)])
-getSelPair dir x = let (pid,procs) = ( (,) <$> ptl_ptlid <*> ptl_procs ) (dnode x)  
-                   in (pid, map ( (,) <$> proc_procid <*> (mk1Sel dir).proc_pdgid ) procs )
+getPtlProcSel :: InOutDir -> DecayID -> PtlProcSel
+getPtlProcSel dir x = let PtlProcPDG pid procs = dnode x  
+                      in PtlProcSel pid (map (ProcSel<$>proc_procid<*>(mk1Sel dir).proc_pdgid) procs)
+
 
 -}

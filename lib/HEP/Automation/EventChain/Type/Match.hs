@@ -31,6 +31,21 @@ import           HEP.Automation.EventChain.Type.Spec
 data SelectFunc = SelectFunc { selectFunc :: (PDGID,Status) -> Bool 
                              , description :: String }
 
+-- | (ProcessID,SelectFunc)
+
+data ProcSel = ProcSel { procsel_procid :: ProcessID
+                       , procsel_sel :: SelectFunc } 
+
+-- | (ParticleID,[(ProcessID,SelectFunc)])
+
+data PtlProcSel = PtlProcSel { ptlsel_ptlid :: ParticleID
+                             , ptlsel_procsels :: [ProcSel] } 
+
+
+-- | Matching Monad 
+
+type MatchM = ErrorT String (State [PtlInfo]) 
+
 -- | data type for a single LHE event matched with a specified process node 
 
 data MatchedLHEvent = MLHEvent { mlhev_procid :: ProcessID
@@ -48,15 +63,3 @@ type ParticleCoord = (ProcessID,ParticleID)
 
 type ParticleCoordMap = M.Map ParticleCoord PtlID 
 
--- | (ProcessID,SelectFunc)
-
-data ProcSel = ProcSel { procsel_procid :: ProcessID
-                       , procsel_sel :: SelectFunc } 
-
--- | (ParticleID,[(ProcessID,SelectFunc)])
-
-data PtlProcSel = PtlProcSel { ptlsel_ptlid :: ParticleID
-                             , ptlsel_procsels :: ProcSel } 
-
-
-type MatchM = ErrorT String (State [PtlInfo]) 

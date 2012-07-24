@@ -86,7 +86,7 @@ data ProcPDG = ProcPDG { proc_procid :: ProcessID
 
 -- | 
 
-data PtlProcPDG = PtlPDGProc { ptl_ptlid :: ParticleID 
+data PtlProcPDG = PtlProcPDG { ptl_ptlid :: ParticleID 
                              , ptl_procs :: [ProcPDG] }
 
 -- | type for cross process with only ids 
