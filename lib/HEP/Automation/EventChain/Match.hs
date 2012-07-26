@@ -29,9 +29,14 @@ import           HEP.Automation.EventChain.Type.Match
 import           HEP.Automation.EventChain.Type.Skeleton
 import           HEP.Automation.EventChain.Type.Spec
 
--- | 
+-- | msum for supporting custom error message 
 
-match1 :: InOutDir -> PDGID -> MatchM PtlInfo
+msum' :: (Monad m) => String -> [MatchM m a] -> MatchM m a 
+msum' msg = foldr mplus (ErrorT (return (Left msg)))
+
+-- | match a single particle with PDGID with incoming/outgoing status 
+
+match1 :: (Functor m, Monad m) => InOutDir -> PDGID -> MatchM m PtlInfo
 match1 dir pdgid = do 
     (pinfos1,pinfos2) <- return . break (f . ((,) <$> idup <*> istup)) =<< lift get 
     if null pinfos2 
@@ -42,32 +47,42 @@ match1 dir pdgid = do
                                In -> st == statusIn 
                                Out -> st == statusOut
 
+-- | 
+
+matchOr :: (Functor m, Monad m, Show a) => String -> (a -> MatchM m b) -> [a] -> MatchM m b 
+matchOr msg m xs = msum' (msg ++ ": no match in matchOr with " ++ show xs) (map m xs)
+
 -- |
 
-actT :: InOutDir -> (ParticleID,[PDGID]) -> MatchM (ParticleID,PtlInfo) 
-actT dir (pid,ids) = (pid,) <$> msum (map (match1 dir) ids)
+actT :: (Functor m, Monad m) => InOutDir -> (ParticleID,[PDGID]) -> MatchM m (ParticleID,PtlInfo) 
+actT dir (pid,ids) = (pid,) <$> matchOr "actT" (match1 dir) ids
+
+--  msum' "no match in actT" (map (match1 dir) ids)
 
 -- |
 
-actD :: InOutDir -> PtlProcPDG -> MatchM (ParticleID,(ProcessID,PtlInfo))
-actD dir PtlProcPDG {..} = (ptl_ptlid,) <$> msum (map m ptl_procs) 
+actD :: (Functor m, Monad m) => InOutDir -> PtlProcPDG -> MatchM m (ParticleID,(ProcessID,PtlInfo))
+actD dir PtlProcPDG {..} = (ptl_ptlid,) <$> matchOr "actD" m ptl_procs
   where m proc = (proc_procid proc,) <$> match1 dir (proc_pdgid proc) 
+
+
+-- msum' "no match in actD" (map m ptl_procs)
+
+-- |
+
+checkD :: (Functor m, Monad m) => InOutDir -> DecayID 
+     -> MatchM m (Either (ParticleID,PtlInfo) (ParticleID,(ProcessID,PtlInfo)))
+checkD dir MkT {..} = Left <$> actT dir tnode 
+checkD dir MkD {..} = Right <$> actD dir dnode
 
 -- | 
 
-getX :: (DecayID,DecayID,[DecayID]) -> MatchM MatchInOut
-getX (in1,in2,outs) = do in1' <- getD In in1 
-                         in2' <- getD In in2 
-                         outs' <- mapM (getD Out) outs 
+getX :: (Functor m, Monad m) => (DecayID,DecayID,[DecayID]) -> MatchM m MatchInOut
+getX (in1,in2,outs) = do in1' <- checkD In in1 
+                         in2' <- checkD In in2 
+                         outs' <- mapM (checkD Out) outs 
                          rem <- lift get
                          return (MIO [in1',in2'] outs' rem)
-
--- |
-
-getD :: InOutDir -> DecayID -> MatchM (Either (ParticleID,PtlInfo) (ParticleID,(ProcessID,PtlInfo)))
-getD dir MkT {..} = Left <$> actT dir tnode 
-getD dir MkD {..} = Right <$> actD dir dnode
-
 
 -- | 
 
@@ -82,11 +97,39 @@ getMatchedLHEvent procid ev@(LHEvent einfo pinfos) (MIO ins outs rs) =
 
 -- | 
 
-matchX :: CrossID -> LHEvent -> Either String MatchedLHEventProcess 
-matchX (MkC {..}) ev@(LHEvent einfo pinfos) = evalState (runErrorT m) pinfos
+matchX :: (Functor m, Monad m) => CrossID -> LHEvent -> m (Either String MatchedLHEventProcess)
+matchX (MkC {..}) ev@(LHEvent einfo pinfos) = evalStateT (runErrorT m) pinfos
   where m = do let (in1,in2) = xincs
                mio <- getX (in1,in2,xouts)  
                return (getMatchedLHEvent xnode ev mio)
+
+-- | 
+
+matchD :: (Functor m, Monad m) => PDGID -> DecayID -> LHEvent 
+       -> m (Either String MatchedLHEventProcess)
+matchD _ (MkT {..}) _ = return (Left "cannot match a process with terminal node")
+matchD pdgid' (MkD {..}) ev@(LHEvent einfo pinfos) = evalStateT (runErrorT m) pinfos 
+  where m = do let procs = ptl_procs dnode  
+                   ptlid' = ptl_ptlid dnode 
+               case (lookupid pdgid' procs) of 
+                 Nothing -> fail ("No such pdgid = " ++ show pdgid' ) 
+                 Just (ProcPDG procid' _) -> do 
+                   i' <- Left . (ptlid',)  <$> match1 In pdgid' 
+                   os' <- mapM (checkD Out) douts 
+                   rem <- lift get 
+                   let mio = (MIO [i'] os' rem)
+                   return (getMatchedLHEvent procid' ev mio)
+    
+
+-- | utility function for looking id up from a list of ProcPDG 
+
+lookupid :: PDGID -> [ProcPDG] -> Maybe ProcPDG
+lookupid pdgid' lst = let flst = filter f lst
+                      in if (not.null) flst then Just (head flst) else Nothing 
+  where f proc = pdgid' == proc_pdgid proc
+
+
+-- | 
 
 {-
 -- | 

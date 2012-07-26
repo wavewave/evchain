@@ -207,30 +207,23 @@ instance Traversable (CrossF b) where
           mcross= MkC <$> f xnode <*> mxincs <*> mxouts 
           travf = liftA unDecayF . traverse f . DecayF 
 
+-----------------------------------------------------------------------------
+-- useful functions 
+-----------------------------------------------------------------------------
 
-
-{-
--- | existentially wrapped type-safe collection of arbitrary length 
-
-data CVec a  = forall n v. (Vec.Fold v a, Vec.Vec n a v) => MkCVec v 
-
--- | existentially wrapped type-safe pair-matched collection of arbitrary length 
-
-data CVec2 a b = forall n v1 v2. (Vec.Vec n a v1, Vec.Vec n b v2) => MkCVec2 v1 v2 
-
--- | 
--- 
--- zipCVec2 :: CVec2 a b -> CVec (a,b)
--- zipCVec2 (MkCVec2 v1 v2) = MkCVec (Vec.zipWith (,) v1 v2)
--}
-
-{-
-data C2Node b a = forall t. Mk2Node (Collection t b, Collection t a)
+-- | bifunctor 
  
-data C1Node x = forall t. Mk1Node (Collection t x)
+fmapD :: (d1 -> d2) -> (t1 -> t2) -> Decay d1 t1 -> Decay d2 t2
+fmapD df tf MkD {..} = MkD (df dnode) (fmap (fmapD df tf) douts)
+fmapD _df tf MkT {..} = MkT (tf tnode) 
 
-type CollCross b a = Cross a (C2Node b a) (C1Node b) 
--}
+-- | trifunctor 
+
+fmapX :: (x1 -> x2) -> (d1 -> d2) -> (t1 -> t2) 
+      -> Cross x1 d1 t1 -> Cross x2 d2 t2 
+fmapX xf df tf MkC {..} = MkC (xf xnode) 
+                            (fmapD df tf (fst xincs), fmapD df tf (snd xincs)) 
+                            (fmap (fmapD df tf) xouts) 
 
 
 

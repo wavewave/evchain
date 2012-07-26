@@ -89,3 +89,23 @@ dp ps (ids,ys) = MkD (zip ps ids) ys
 dpcom :: p -> ([PDGID], [SPDecay p]) -> SPDecay p 
 dpcom p (ids,ys) = MkD (map (p,) ids) ys
 
+
+
+
+
+{- 
+
+makeDecayID :: ParticleID -> SDecayTop -> DecayID
+makeDecayID idnum (GTerminal (TNode n)) = GTerminal (TNode (idnum,n))
+makeDecayID idnum (GDecay (DNode n procid,ys)) = GDecay (DNode (idnum,n) procid,dtable)
+  where dtable = zipWith makeDecayID [1..] ys
+
+-- | 
+
+makeCrossID :: SCross -> CrossID
+makeCrossID (GCross procid inc out) = GCross procid incnew outnew 
+  where incnew = zipWith makeDecayID [1..] inc
+        outnew = zipWith makeDecayID [length inc+1..] out
+
+
+-}

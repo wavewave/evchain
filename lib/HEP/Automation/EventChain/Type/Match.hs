@@ -44,8 +44,10 @@ data PtlProcSel = PtlProcSel { ptlsel_ptlid :: ParticleID
 
 -- | Matching Monad 
 
-type MatchM = ErrorT String (State [PtlInfo]) 
+type MatchM m = ErrorT String (StateT [PtlInfo] m) 
  
+
+
 
 -- | 
 

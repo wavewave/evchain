@@ -1,7 +1,10 @@
+{-# LANGUAGE RecordWildCards #-}
+
 module Test.EventChain.Match where
 
 -- from other packages from others
 import           Control.Monad.Error
+import           Control.Monad.Identity
 import           Control.Monad.State
 import           Data.Conduit
 import qualified Data.Conduit.List as CL
@@ -17,6 +20,7 @@ import           HEP.Automation.EventChain.FileDriver
 import           HEP.Automation.EventChain.Match 
 import           HEP.Automation.EventChain.Type.Match
 import           HEP.Automation.EventChain.Type.Spec
+import           HEP.Automation.EventChain.SpecDSL
 -- 
 import           Paths_evchain
 import           Test.EventChain.Common 
@@ -42,8 +46,9 @@ test_lhe = do
 test_matchs :: LHEvent -> ErrorT String IO ()
 test_matchs ev = do 
   guardMsg "fail in test_match" (return . test_match $ ev)
-  -- guardMsg "fail in test_match2" (return . test_match2 $ ev)
-  -- guardMsg "fail in test_match3" (return . test_match3 $ ev)
+  guardMsg "fail in test_match_single" (return . test_match_single $ ev)
+  guardMsg "fail in test_match_multi" (return . test_match_multi $ ev)
+  -- guardMsg "fail in test_matchX" (return . test_matchX $ ev)
   -- guardMsg "fail in test_match4" (return . test_match4 $ ev)
 
 
@@ -51,7 +56,40 @@ test_matchs ev = do
 
 test_match :: LHEvent -> Bool 
 test_match ev = length (lhe_ptlinfos ev) == 4 
+
+
+-- | 
+
+test_match_single :: LHEvent -> Bool 
+test_match_single LHEvent {..} = 
+  let r = runIdentity (evalStateT (runErrorT (match1 Out 1000021)) lhe_ptlinfos)
+  in either (const False) (const True) r 
   
+-- | 
+
+test_match_multi :: LHEvent -> Bool
+test_match_multi LHEvent {..} = 
+  let m = matchOr "test_match_multi" (match1 Out) [1,2,3,100,1000021] 
+      r = runIdentity (evalStateT (runErrorT m) lhe_ptlinfos)
+  in trace (show r) $ either (const False) (const True) r 
+
+-- | 
+{-
+
+spec_gluglugogo :: CrossID
+spec_gluglugogo = fmapX id
+
+                  xp 1 (21,21,[1000021,1000021]) 
+  where dfunc :: [
+ 
+-- | 
+
+test_matchX :: LHEvent -> Bool 
+test_matchX ev = let r = runIdentity (matchX spec_gluglugogo) ev 
+                 in trueOrFalse r 
+
+-}
+
 {-
 -- | 
 
