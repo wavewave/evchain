@@ -39,6 +39,7 @@ Executable evchaintemp
                    HEPUtil,
                    LHEParser,
                    Vec == 1.0.*,
+                   random == 1.0.*, 
                    evchain
 
 Library
@@ -59,6 +60,7 @@ Library
                    hmatrix, 
                    pointed == 2.1.*,
                    Vec == 1.0.*,
+                   random == 1.0.*,
                    containers
                    
   Exposed-Modules: 

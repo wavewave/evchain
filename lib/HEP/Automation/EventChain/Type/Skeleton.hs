@@ -225,7 +225,11 @@ fmapX xf df tf MkC {..} = MkC (xf xnode)
                             (fmapD df tf (fst xincs), fmapD df tf (snd xincs)) 
                             (fmap (fmapD df tf) xouts) 
 
+-- | 
 
+getNodeD :: Decay a a -> a 
+getNodeD MkD {..} = dnode 
+getNodeD MkT {..} = tnode 
 
 
 

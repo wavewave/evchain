@@ -35,6 +35,16 @@ ppair n = [ n, -n ]
 jet :: [PDGID]
 jet = [ 1,-1,2,-2,3,-3,4,-4,21 ] 
 
+-- | proton 
+
+proton :: [PDGID] 
+proton = jet 
+
+-- | antiproton 
+
+antiproton :: [PDGID] 
+antiproton = jet 
+
 -- | a collection of charged leptons 
 
 lepton :: [PDGID] 
