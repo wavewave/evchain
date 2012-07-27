@@ -10,7 +10,7 @@
 -- Stability   : experimental
 -- Portability : GHC
 --
--- Recursively generate events using madgraph-auto . 
+-- Recursively order event generation and counting. 
 -- 
 -----------------------------------------------------------------------------
 
@@ -61,7 +61,7 @@ mkOccNumDecay MkD {..} cntr = mkOccNum (prinfoid_ptlid dnode) cntr
 
 createProcessD :: (Monad m) => 
                   (SIDecay p -> Int -> m a) 
-               -> (a -> Counter)
+               -> (a -> m Counter)
                -> SIDecay p 
                -> ProcessIndex 
                -> ProcessMap a 
@@ -74,7 +74,7 @@ createProcessD gen cnt decay idxroot procm lst =
 
 createProcessDwrk :: (Monad m) =>
                      (SIDecay p -> Int -> m a) -- ^ generator function for decay 
-                  -> (a -> Counter)          -- ^ counter function for a 
+                  -> (a -> m Counter)          -- ^ counter function for a 
                   -> SIDecay p
                   -> ProcessIndex 
                   -> (PDGID,Int) 
@@ -86,7 +86,7 @@ createProcessDwrk gen cnt self@MkD {..} idxroot (pdgid',n) m
         do let nkey = (prinfoid_ptlid dnode,pdgid') : idxroot
            dproc <- gen self {dnode=dnode { prinfoid_pdgids = [pdgid'] }} n 
            let newmap = HM.insert nkey dproc m 
-               cntr = cnt dproc
+           cntr <- cnt dproc
            rmap <- foldrM (f nkey (outcounter cntr)) newmap douts
            return rmap 
     | otherwise = 
@@ -102,13 +102,13 @@ createProcessDwrk gen cnt self@MkD {..} idxroot (pdgid',n) m
 createProcessX :: (Monad m) => 
                   (SICross p -> Int -> m a) -- ^ generator function for cross
                -> (SIDecay p -> Int -> m a) -- ^ generator function for decay 
-               -> (a -> Counter)          -- ^ counter function 
+               -> (a -> m Counter)          -- ^ counter function 
                -> SICross p
                -> Int 
                -> m (ProcessMap a)
 createProcessX genX genD cnt cross@MkC {..} n = do 
     dproc <- genX cross n
-    let cntr = cnt dproc 
+    cntr <- cnt dproc 
     let newmap = HM.insert [] dproc HM.empty 
         xinc1 = fst xincs 
         xinc2 = snd xincs 

@@ -99,3 +99,12 @@ countSingleEvent DummyEvent {..} (Counter incomingm outgoingm) = Counter rim rom
         rom = foldr f outgoingm outptls 
 
 
+-- | 
+
+genX :: SICross p -> Int -> IO DummyProcess
+genX c n = replicateM n (generateEventSX c) >>= return . DummyProcess 
+
+-- | 
+
+genD :: SIDecay p -> Int -> IO DummyProcess
+genD d n = replicateM n (generateEventSD d) >>= return . DummyProcess
