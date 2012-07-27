@@ -12,9 +12,9 @@ import HEP.Automation.EventChain.Process
 
 
 
-spec_testD = d ([1,2,3],[1,2,d ([3,9,10],[2,2])])
+spec_testD = dc ("hello",[1,2,3],[1,2,dc ("test2",[3,9,10],[2,2])])
 
-spec_testX = x (t proton,t proton,[spec_testD,1000021,1000021])
+spec_testX = xc ("cross",t proton,t proton,[spec_testD,1000021,1000021])
 
 spec_sitestX = mkSICross spec_testX 
 

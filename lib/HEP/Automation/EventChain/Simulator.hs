@@ -17,6 +17,7 @@
 module HEP.Automation.EventChain.Simulator where
 
 -- other packages from others
+import           Control.Applicative 
 import           Control.Monad
 import           Data.Foldable (foldrM)
 import qualified Data.HashMap.Lazy as HM
@@ -64,19 +65,26 @@ generateEventG (inlst,outlst) = do
                     
 -- | generate event specified as SDecay 
    
-generateEventSD :: SIDecay -> IO DummyEvent 
-generateEventSD (MkD dnode1 douts1) = generateEventG ([dnode1],daughters)
-  where daughters = map getNodeD douts1 
+generateEventSD :: SIDecay p -> IO DummyEvent 
+generateEventSD (MkD dnode1 douts1) = generateEventG ([self],daughters)
+  where extractpair = (,) <$> prinfoid_ptlid <*> prinfoid_pdgids
+        expairfromnode MkD {..} = extractpair dnode 
+        expairfromnode MkT {..} = tnode 
+        self =  extractpair dnode1  
+        daughters = map expairfromnode douts1 
 generateEventSD (MkT {..} ) = error "I cannot generate for terminal node" 
 
 -- | generate event specified as SCross
 
-generateEventSX :: SICross -> IO DummyEvent 
+generateEventSX :: SICross p -> IO DummyEvent 
 generateEventSX (MkC xnode1 (xinc1,xinc2) xouts1) = do 
-    generateEventG ([getNodeD xinc1, getNodeD xinc2],outs)
-  where outs = map getNodeD xouts1
-       
-
+    generateEventG ([i1,i2],outs)
+  where extractpair = (,) <$> prinfoid_ptlid <*> prinfoid_pdgids
+        expairfromnode MkD {..} = extractpair dnode 
+        expairfromnode MkT {..} = tnode 
+        i1 = expairfromnode xinc1 
+        i2 = expairfromnode xinc2
+        outs = map expairfromnode xouts1
 -- | 
 
 countProcess :: DummyProcess -> Counter

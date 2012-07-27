@@ -63,37 +63,18 @@ neutrino = [ 12,-12, 14,-14,16,-16 ]
 
 -- | create simple spec topology (cross)
 
-x :: (SDecay,SDecay,[SDecay]) -> SCross 
+x :: (DDecay,DDecay,[DDecay]) -> DCross 
 x (a,b,ys) = MkC () (a,b) ys 
 
 -- | create simple spec topology (decay)
 
-d :: ([PDGID],[SDecay]) -> SDecay
+d :: ([PDGID],[DDecay]) -> DDecay
 d (a,ys) = MkD a ys
 
 -- | creates simple spec (as a general function)
 
 t :: tnode -> Decay dnode tnode
 t a = MkT a 
-
------------------------------------------------------------------------------
--- transform simple spec into spec with ptlid 
------------------------------------------------------------------------------
-
-mkSIDecay :: ParticleID -> SDecay -> SIDecay
-mkSIDecay pid MkT {..} = MkT (pid,tnode) 
-mkSIDecay pid MkD {..} = MkD (pid,dnode) (zipWith mkSIDecay [1..] douts)
-
--- | 
-
-mkSICross :: SCross -> SICross
-mkSICross MkC {..} = MkC () (inc1,inc2) outs 
-  where inc1 = mkSIDecay 1 (fst xincs) 
-        inc2 = mkSIDecay 2 (snd xincs)
-        outs = zipWith mkSIDecay [1..] xouts
-
-
-
 
 
 
@@ -114,11 +95,49 @@ dp ps (ids,ys) = MkD (zip ps ids) ys
 -- Generate Spec by common process info 
 -----------------------------------------------------------------------------
 
+-- | 
 
+xc :: (p,SDecay p,SDecay p,[SDecay p]) -> SCross p 
+xc (p,i1,i2,outs) = MkC p (i1,i2) outs 
 
 -- | 
-dpcom :: p -> ([PDGID], [SPDecay p]) -> SPDecay p 
-dpcom p (ids,ys) = MkD (map (p,) ids) ys
+
+dc :: (p,[PDGID],[SDecay p]) -> SDecay p 
+dc (p,ids,ys) = MkD (p,ids) ys
+
+
+
+
+-----------------------------------------------------------------------------
+-- transform simple spec into spec with ptlid 
+-----------------------------------------------------------------------------
+
+mkDIDecay :: ParticleID -> DDecay -> DIDecay
+mkDIDecay pid MkT {..} = MkT (pid,tnode) 
+mkDIDecay pid MkD {..} = MkD (pid,dnode) (zipWith mkDIDecay [1..] douts)
+
+-- | 
+
+mkDICross :: DCross -> DICross
+mkDICross MkC {..} = MkC () (inc1,inc2) outs 
+  where inc1 = mkDIDecay 1 (fst xincs) 
+        inc2 = mkDIDecay 2 (snd xincs)
+        outs = zipWith mkDIDecay [1..] xouts
+
+-- | 
+
+mkSIDecay :: ParticleID -> SDecay p -> SIDecay p
+mkSIDecay pid MkT {..} = MkT (pid,tnode) 
+mkSIDecay pid MkD {..} = MkD (PrInfoID (fst dnode) pid (snd dnode))
+                           (zipWith mkSIDecay [1..] douts)
+
+-- | 
+
+mkSICross :: SCross p -> SICross p
+mkSICross MkC {..} = MkC xnode (inc1,inc2) outs 
+  where inc1 = mkSIDecay 1 (fst xincs) 
+        inc2 = mkSIDecay 2 (snd xincs)
+        outs = zipWith mkSIDecay [1..] xouts
 
 
 

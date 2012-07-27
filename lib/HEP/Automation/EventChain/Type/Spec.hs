@@ -56,32 +56,70 @@ data InOutDir = In | Out
 
 type ParticleID = Int
 
+
+-----------------------------------------------------------------------------
+-- Dummy data type 
+-----------------------------------------------------------------------------
+
+-- | Dummy spec
+
+type DCross = Cross () [PDGID] [PDGID]
+
+-- | 
+
+type DDecay = Decay [PDGID] [PDGID]
+
+-- | particle id indexed spec
+
+type DICross = Cross () (ParticleID,[PDGID]) (ParticleID,[PDGID])
+
+-- | 
+
+type DIDecay = Decay (ParticleID,[PDGID]) (ParticleID,[PDGID]) 
+
+-----------------------------------------------------------------------------
+-- with process info 
+-----------------------------------------------------------------------------
+
+-- | Process Info  
+
+type ProcessInfo = String 
+
+-- | 
+
+data ProcInfoPtlIDs p = PrInfoID { prinfoid_proc :: p 
+                                 , prinfoid_ptlid :: ParticleID
+                                 , prinfoid_pdgids :: [PDGID] } 
+                        deriving (Show,Eq)
+
+
+-- | process per node 
+
+type SCross p = Cross p (p,[PDGID]) [PDGID]
+
 -- |
 
-type SCross = Cross () [PDGID] [PDGID]
+type SDecay p = Decay (p,[PDGID]) [PDGID]
 
--- |
+-- | particle id indexed spec
 
-type SDecay = Decay [PDGID] [PDGID]
-
-
--- | 
-
-type SICross = Cross () (ParticleID,[PDGID]) (ParticleID,[PDGID])
+type SICross p = Cross p (ProcInfoPtlIDs p) (ParticleID,[PDGID])
 
 -- | 
 
-type SIDecay = Decay (ParticleID,[PDGID]) (ParticleID,[PDGID]) 
+type SIDecay p = Decay (ProcInfoPtlIDs p) (ParticleID,[PDGID]) 
 
--- | 
 
--- | 
+
+-- | process per id 
 
 type SPCross p = Cross p [(p,PDGID)] [PDGID]
 
 -- | 
 
 type SPDecay p = Decay [(p,PDGID)] [PDGID] 
+
+
 
 
 -- | process and selection function pair  

@@ -44,19 +44,19 @@ main1 = do
 
 -- unit test 2 
 
-spec1x_explicit :: SCross
+spec1x_explicit :: DCross
 spec1x_explicit = MkC ()  (MkT [1], MkT [1,2] )
                           [ spec1d1_explicit, MkT [3] ] 
 
-spec1d1_explicit :: SDecay 
+spec1d1_explicit :: DDecay 
 spec1d1_explicit = MkD [3] 
                        [ MkT [4,5,6]
                        , MkT [4] ]
 
-spec1x_implicit :: SCross
+spec1x_implicit :: DCross
 spec1x_implicit = x (1,t [1,2], [ spec1d1_implicit, 3] )
 
-spec1d1_implicit :: SDecay
+spec1d1_implicit :: DDecay
 spec1d1_implicit = d ([3],[t [4,5,6], 4] )
 
 

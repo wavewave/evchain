@@ -17,17 +17,13 @@
 module HEP.Automation.EventChain.Process where
 
 -- other packages from others
-import           Control.Monad
 import           Data.Foldable (foldrM)
 import qualified Data.HashMap.Lazy as HM
-import qualified Data.IntMap as IM
-import           System.Random 
 -- from other hep-platform packages 
 import           HEP.Parser.LHEParser.Type
 -- from this package
 import           HEP.Automation.EventChain.Type.Skeleton
 import           HEP.Automation.EventChain.Type.Spec
-import           HEP.Automation.EventChain.SpecDSL
 
 
 -- | 
@@ -56,17 +52,17 @@ mkOccNum pid = map (\((_,pdg),n)->(pdg,n))
                . HM.filterWithKey (\(i,_) _ -> i == pid)
 
 
-mkOccNumDecay :: SIDecay -> HM.HashMap (ParticleID,PDGID) Int -> [(PDGID,Int)]
+mkOccNumDecay :: SIDecay p -> HM.HashMap (ParticleID,PDGID) Int -> [(PDGID,Int)]
 mkOccNumDecay MkT {..} _ = [] 
-mkOccNumDecay MkD {..} cntr = mkOccNum (fst dnode) cntr 
+mkOccNumDecay MkD {..} cntr = mkOccNum (prinfoid_ptlid dnode) cntr 
 
 
 -- | create process for a decay 
 
 createProcessD :: (Monad m) => 
-                  (SIDecay -> Int -> m a) 
+                  (SIDecay p -> Int -> m a) 
                -> (a -> Counter)
-               -> SIDecay 
+               -> SIDecay p 
                -> ProcessIndex 
                -> ProcessMap a 
                -> [(PDGID,Int)] 
@@ -77,23 +73,24 @@ createProcessD gen cnt decay idxroot procm lst =
 -- | 
 
 createProcessDwrk :: (Monad m) =>
-                     (SIDecay -> Int -> m a) -- ^ generator function for decay 
+                     (SIDecay p -> Int -> m a) -- ^ generator function for decay 
                   -> (a -> Counter)          -- ^ counter function for a 
-                  -> SIDecay 
+                  -> SIDecay p
                   -> ProcessIndex 
                   -> (PDGID,Int) 
                   -> ProcessMap a 
                   -> m (ProcessMap a)
-createProcessDwrk _gen cnt MkT {..}  _ _ m = return m 
+createProcessDwrk _gen _cnt MkT {..}  _ _ m = return m 
 createProcessDwrk gen cnt self@MkD {..} idxroot (pdgid',n) m
-    | pdgid' `elem` snd dnode = do let nkey = (fst dnode,pdgid') : idxroot
-                                   dproc <- gen self {dnode=(fst dnode,[pdgid'])} n  
-                                   let newmap = HM.insert nkey dproc m 
-                                       cntr = cnt dproc
-                                   rmap <- foldrM (f nkey (outcounter cntr)) newmap douts
-                                   return rmap 
-    | otherwise = fail ("createProcessDwrk : cannot find pdgid = " ++ show pdgid'
-                         ++ show self )
+    | pdgid' `elem` (prinfoid_pdgids dnode) = 
+        do let nkey = (prinfoid_ptlid dnode,pdgid') : idxroot
+           dproc <- gen self {dnode=dnode { prinfoid_pdgids = [pdgid'] }} n 
+           let newmap = HM.insert nkey dproc m 
+               cntr = cnt dproc
+           rmap <- foldrM (f nkey (outcounter cntr)) newmap douts
+           return rmap 
+    | otherwise = 
+        fail ("createProcessDwrk : cannot find pdgid = " ++ show pdgid') --  ++ show self )
   where f k cntrm dcy procm = createProcessD gen cnt dcy k procm (mkOccNumDecay dcy cntrm) 
 
 
@@ -103,10 +100,10 @@ createProcessDwrk gen cnt self@MkD {..} idxroot (pdgid',n) m
 -- | create process for a cross 
 
 createProcessX :: (Monad m) => 
-                  (SICross -> Int -> m a) -- ^ generator function for cross
-               -> (SIDecay -> Int -> m a) -- ^ generator function for decay 
+                  (SICross p -> Int -> m a) -- ^ generator function for cross
+               -> (SIDecay p -> Int -> m a) -- ^ generator function for decay 
                -> (a -> Counter)          -- ^ counter function 
-               -> SICross 
+               -> SICross p
                -> Int 
                -> m (ProcessMap a)
 createProcessX genX genD cnt cross@MkC {..} n = do 
@@ -121,4 +118,3 @@ createProcessX genX genD cnt cross@MkC {..} n = do
     return rmap2 
   where f cntrm dcy procm = createProcessD genD cnt dcy [] procm (mkOccNumDecay dcy cntrm)
 
- -- return . DummyProcess =<< replicateM n (generateEventSX cross)
