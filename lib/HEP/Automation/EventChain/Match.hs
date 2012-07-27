@@ -61,7 +61,7 @@ actT dir (pid,ids) = (pid,) <$> matchOr "actT" (match1 dir) ids
 
 -- |
 
-actD :: (Functor m, Monad m) => InOutDir -> PtlProcPDG -> MatchM m (ParticleID,(ProcessID,PtlInfo))
+actD :: (Functor m, Monad m, Show p) => InOutDir -> PtlProcPDG p -> MatchM m (ParticleID,(p,PtlInfo))
 actD dir PtlProcPDG {..} = (ptl_ptlid,) <$> matchOr "actD" m ptl_procs
   where m proc = (proc_procid proc,) <$> match1 dir (proc_pdgid proc) 
 
@@ -70,14 +70,16 @@ actD dir PtlProcPDG {..} = (ptl_ptlid,) <$> matchOr "actD" m ptl_procs
 
 -- |
 
-checkD :: (Functor m, Monad m) => InOutDir -> DecayID 
-     -> MatchM m (Either (ParticleID,PtlInfo) (ParticleID,(ProcessID,PtlInfo)))
+checkD :: (Functor m, Monad m, Show p) => InOutDir -> DecayID p 
+     -> MatchM m (Either (ParticleID,PtlInfo) (ParticleID,(p,PtlInfo)))
 checkD dir MkT {..} = Left <$> actT dir tnode 
 checkD dir MkD {..} = Right <$> actD dir dnode
 
 -- | 
 
-getX :: (Functor m, Monad m) => (DecayID,DecayID,[DecayID]) -> MatchM m MatchInOut
+getX :: (Functor m, Monad m, Show p) => 
+        (DecayID p, DecayID p, [DecayID p]) 
+     -> MatchM m (MatchInOut p)
 getX (in1,in2,outs) = do in1' <- checkD In in1 
                          in2' <- checkD In in2 
                          outs' <- mapM (checkD Out) outs 
@@ -86,18 +88,23 @@ getX (in1,in2,outs) = do in1' <- checkD In in1
 
 -- | 
 
-getMatchedLHEvent :: ProcessID -> LHEvent -> MatchInOut -> MatchedLHEventProcess
-getMatchedLHEvent procid ev@(LHEvent einfo _pinfos) (MIO ins outs rs) = 
-    MLHEvent procid ev einfo (map (either tnodef dnodef) ins) (map (either tnodef dnodef) outs) rs 
-  where tnodef :: (ParticleID,PtlInfo) -> (Either ParticleID (ParticleID,ProcessID), PtlInfo)
+getMatchedLHEvent :: (Show p) => 
+                     p -> LHEvent -> MatchInOut p -> MatchedLHEventProcess p
+getMatchedLHEvent p ev@(LHEvent einfo _pinfos) (MIO ins outs rs) = 
+    MLHEvent p ev einfo (map (either tnodef dnodef) ins) 
+        (map (either tnodef dnodef) outs) rs 
+  where tnodef :: (ParticleID,PtlInfo) -> (Either ParticleID (ParticleID,p), PtlInfo)
         tnodef (pid,pinfo) = (Left pid, pinfo)
         
-        dnodef :: (ParticleID,(ProcessID,PtlInfo)) -> (Either ParticleID (ParticleID,ProcessID), PtlInfo)
+        dnodef :: (ParticleID,(p,PtlInfo)) -> (Either ParticleID (ParticleID,p), PtlInfo)
         dnodef (pid,(prcid,pinfo)) = (Right (pid,prcid), pinfo)
 
 -- | 
 
-matchX :: (Functor m, Monad m) => CrossID -> LHEvent -> m (Either String MatchedLHEventProcess)
+matchX :: (Functor m, Monad m, Show p) => 
+          CrossID p  
+       -> LHEvent 
+       -> m (Either String (MatchedLHEventProcess p))
 matchX (MkC {..}) ev@(LHEvent _einfo pinfos) = evalStateT (runErrorT m) pinfos
   where m = do let (in1,in2) = xincs
                mio <- getX (in1,in2,xouts)  
@@ -105,8 +112,8 @@ matchX (MkC {..}) ev@(LHEvent _einfo pinfos) = evalStateT (runErrorT m) pinfos
 
 -- | 
 
-matchD :: (Functor m, Monad m) => PDGID -> DecayID -> LHEvent 
-       -> m (Either String MatchedLHEventProcess)
+matchD :: (Functor m, Monad m, Show p) => PDGID -> DecayID p -> LHEvent 
+       -> m (Either String (MatchedLHEventProcess p))
 matchD _ (MkT {..}) _ = return (Left "cannot match a process with terminal node")
 matchD pdgid' (MkD {..}) ev@(LHEvent _einfo pinfos) = evalStateT (runErrorT m) pinfos 
   where m = do let procs = ptl_procs dnode  
@@ -120,13 +127,6 @@ matchD pdgid' (MkD {..}) ev@(LHEvent _einfo pinfos) = evalStateT (runErrorT m) p
                    let mio = (MIO [i'] os' rs')
                    return (getMatchedLHEvent procid' ev mio)
     
-
--- | utility function for looking id up from a list of ProcPDG 
-
-lookupid :: PDGID -> [ProcPDG] -> Maybe ProcPDG
-lookupid pdgid' lst = let flst = filter f lst
-                      in if (not.null) flst then Just (head flst) else Nothing 
-  where f proc = pdgid' == proc_pdgid proc
 
 
 -- | 

@@ -25,6 +25,52 @@ import           HEP.Parser.LHEParser.Type
 -- from this package
 import           HEP.Automation.EventChain.Type.Spec
 
+
+
+-- | Matching Monad 
+
+type MatchM m = ErrorT String (StateT [PtlInfo] m) 
+ 
+
+-- | 
+
+data MatchInOut p = 
+  MIO { mio_incoming :: [Either (ParticleID,PtlInfo) (ParticleID,(p,PtlInfo))]
+      , mio_outgoing :: [Either (ParticleID,PtlInfo) (ParticleID,(p,PtlInfo))]
+      , mio_remaining :: [PtlInfo]
+      } 
+
+-- | data type for a single LHE event matched with a specified process node 
+
+data MatchedLHEvent p tnode dnode = 
+         MLHEvent { mlhev_procinfo :: p, 
+                    mlhev_orig :: LHEvent 
+                  , mlhev_einfo :: EventInfo
+                  , mlhev_incoming :: [(Either tnode dnode, PtlInfo)]
+                  , mlhev_outgoing :: [(Either tnode dnode, PtlInfo)]
+                  , mlhev_intermediate :: [PtlInfo] } 
+
+
+-- -- | default type for MatchedLHEvent 
+
+-- type MatchedLHEventSimple = MatchedLHEvent ParticleID 
+
+-- | MatchedLHEvent with Decay structure 
+
+type MatchedLHEventProcess p = MatchedLHEvent p ParticleID (ParticleID,p) 
+
+-- | coordinate for a particle in a given collection of processes 
+
+type ParticleCoord = (ProcessID,ParticleID)
+
+-- | coord storage for particles  
+
+type ParticleCoordMap = M.Map ParticleCoord PtlID 
+
+
+
+
+{-
 -- | match function type to find a particle with a given pdgid and 
 --   status criterion
 
@@ -40,47 +86,4 @@ data ProcSel = ProcSel { procsel_procid :: ProcessID
 
 data PtlProcSel = PtlProcSel { ptlsel_ptlid :: ParticleID
                              , ptlsel_procsels :: [ProcSel] } 
-
-
--- | Matching Monad 
-
-type MatchM m = ErrorT String (StateT [PtlInfo] m) 
- 
-
-
-
--- | 
-
-data MatchInOut = 
-  MIO { mio_incoming :: [Either (ParticleID,PtlInfo) (ParticleID,(ProcessID,PtlInfo))]
-      , mio_outgoing :: [Either (ParticleID,PtlInfo) (ParticleID,(ProcessID,PtlInfo))]
-      , mio_remaining :: [PtlInfo]
-      } 
-
--- | data type for a single LHE event matched with a specified process node 
-
-data MatchedLHEvent tnode dnode = 
-         MLHEvent { mlhev_procid :: ProcessID 
-                  , mlhev_orig :: LHEvent 
-                  , mlhev_einfo :: EventInfo
-                  , mlhev_incoming :: [(Either tnode dnode, PtlInfo)]
-                  , mlhev_outgoing :: [(Either tnode dnode, PtlInfo)]
-                  , mlhev_intermediate :: [PtlInfo] } 
-
-
--- -- | default type for MatchedLHEvent 
-
--- type MatchedLHEventSimple = MatchedLHEvent ParticleID 
-
--- | MatchedLHEvent with Decay structure 
-
-type MatchedLHEventProcess = MatchedLHEvent ParticleID (ParticleID,ProcessID) 
-
--- | coordinate for a particle in a given collection of processes 
-
-type ParticleCoord = (ProcessID,ParticleID)
-
--- | coord storage for particles  
-
-type ParticleCoordMap = M.Map ParticleCoord PtlID 
-
+-}

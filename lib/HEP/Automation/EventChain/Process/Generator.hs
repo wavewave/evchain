@@ -115,13 +115,13 @@ work str n  = do
 
 
 
-testmadgraphX :: SICross ProcessInfo -> Int -> IO FilePath  
+testmadgraphX :: CrossID ProcessInfo -> Int -> IO FilePath  
 testmadgraphX MkC {..} n = do str <-  work xnode n 
                               putStrLn str 
                               return str 
                               
 
-testmadgraphD :: SIDecay ProcessInfo -> Int -> IO FilePath 
+testmadgraphD :: DecayID ProcessInfo -> Int -> IO FilePath 
 testmadgraphD = error "not implemented"
 
 lheCounter :: FilePath -> IO Counter 

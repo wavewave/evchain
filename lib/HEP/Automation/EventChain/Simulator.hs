@@ -65,9 +65,9 @@ generateEventG (inlst,outlst) = do
                     
 -- | generate event specified as SDecay 
    
-generateEventSD :: SIDecay p -> IO DummyEvent 
+generateEventSD :: DecayID p -> IO DummyEvent 
 generateEventSD (MkD dnode1 douts1) = generateEventG ([self],daughters)
-  where extractpair = (,) <$> prinfoid_ptlid <*> prinfoid_pdgids
+  where extractpair = (,) <$> ptl_ptlid <*> (map proc_pdgid) . ptl_procs 
         expairfromnode MkD {..} = extractpair dnode 
         expairfromnode MkT {..} = tnode 
         self =  extractpair dnode1  
@@ -76,10 +76,10 @@ generateEventSD (MkT {..} ) = error "I cannot generate for terminal node"
 
 -- | generate event specified as SCross
 
-generateEventSX :: SICross p -> IO DummyEvent 
+generateEventSX :: CrossID p -> IO DummyEvent 
 generateEventSX (MkC xnode1 (xinc1,xinc2) xouts1) = do 
     generateEventG ([i1,i2],outs)
-  where extractpair = (,) <$> prinfoid_ptlid <*> prinfoid_pdgids
+  where extractpair = (,) <$> ptl_ptlid <*> (map proc_pdgid) . ptl_procs
         expairfromnode MkD {..} = extractpair dnode 
         expairfromnode MkT {..} = tnode 
         i1 = expairfromnode xinc1 
@@ -101,10 +101,10 @@ countSingleEvent DummyEvent {..} (Counter incomingm outgoingm) = Counter rim rom
 
 -- | 
 
-genX :: SICross p -> Int -> IO DummyProcess
+genX :: CrossID p -> Int -> IO DummyProcess
 genX c n = replicateM n (generateEventSX c) >>= return . DummyProcess 
 
 -- | 
 
-genD :: SIDecay p -> Int -> IO DummyProcess
+genD :: DecayID p -> Int -> IO DummyProcess
 genD d n = replicateM n (generateEventSD d) >>= return . DummyProcess

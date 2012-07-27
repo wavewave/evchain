@@ -1,5 +1,6 @@
 {-# LANGUAGE GADTs, EmptyDataDecls, FlexibleInstances, StandaloneDeriving,
-             TypeSynonymInstances, RankNTypes, TypeOperators #-}
+             TypeSynonymInstances, RankNTypes, TypeOperators, 
+             RecordWildCards #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -124,23 +125,43 @@ type SPDecay p = Decay [(p,PDGID)] [PDGID]
 
 -- | process and selection function pair  
 
-data ProcPDG = ProcPDG { proc_procid :: ProcessID
-                       , proc_pdgid :: PDGID } 
-             deriving (Show,Eq)
+data ProcPDG p = ProcPDG { proc_procid :: p
+                         , proc_pdgid :: PDGID } 
+                 deriving (Show,Eq)
 
 -- | 
 
-data PtlProcPDG = PtlProcPDG { ptl_ptlid :: ParticleID 
-                             , ptl_procs :: [ProcPDG] }
-                  deriving (Show,Eq)
+data PtlProcPDG p = PtlProcPDG { ptl_ptlid :: ParticleID 
+                               , ptl_procs :: [ProcPDG p] }
+                    deriving (Show,Eq)
+
+
+{-
+-- | 
+
+lookupPDGID :: PtlProcPDG p -> PDGID -> Maybe (ProcPDG p) 
+lookupPDGID PtlProcPDG {..} pdgid' = 
+  let flst = filter (\x -> proc_pdgid x == pdgid') ptl_procs  
+  in if (not.null) flst then Just (head flst) else Nothing 
+
+-}
+
+-- | utility function for looking id up from a list of ProcPDG 
+
+lookupid :: PDGID -> [ProcPDG p] -> Maybe (ProcPDG p)
+lookupid pdgid' lst = let flst = filter f lst
+                      in if (not.null) flst then Just (head flst) else Nothing 
+  where f proc = pdgid' == proc_pdgid proc
+
+
 
 -- | type for cross process with only ids 
 
-type CrossID = Cross ProcessID PtlProcPDG (ParticleID,[PDGID])
+type CrossID p = Cross p (PtlProcPDG p) (ParticleID,[PDGID])
 
 -- | type for decay process with only ids
 
-type DecayID = Decay PtlProcPDG (ParticleID,[PDGID])
+type DecayID p = Decay (PtlProcPDG p) (ParticleID,[PDGID])
 
 
 -- |

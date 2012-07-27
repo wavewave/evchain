@@ -52,17 +52,17 @@ mkOccNum pid = map (\((_,pdg),n)->(pdg,n))
                . HM.filterWithKey (\(i,_) _ -> i == pid)
 
 
-mkOccNumDecay :: SIDecay p -> HM.HashMap (ParticleID,PDGID) Int -> [(PDGID,Int)]
+mkOccNumDecay :: DecayID p -> HM.HashMap (ParticleID,PDGID) Int -> [(PDGID,Int)]
 mkOccNumDecay MkT {..} _ = [] 
-mkOccNumDecay MkD {..} cntr = mkOccNum (prinfoid_ptlid dnode) cntr 
+mkOccNumDecay MkD {..} cntr = mkOccNum (ptl_ptlid dnode) cntr 
 
 
 -- | create process for a decay 
 
 createProcessD :: (Monad m) => 
-                  (SIDecay p -> Int -> m a) 
+                  (DecayID p -> Int -> m a) 
                -> (a -> m Counter)
-               -> SIDecay p 
+               -> DecayID p 
                -> ProcessIndex 
                -> ProcessMap a 
                -> [(PDGID,Int)] 
@@ -73,37 +73,38 @@ createProcessD gen cnt decay idxroot procm lst =
 -- | 
 
 createProcessDwrk :: (Monad m) =>
-                     (SIDecay p -> Int -> m a) -- ^ generator function for decay 
+                     (DecayID p -> Int -> m a) -- ^ generator function for decay 
                   -> (a -> m Counter)          -- ^ counter function for a 
-                  -> SIDecay p
+                  -> DecayID p
                   -> ProcessIndex 
                   -> (PDGID,Int) 
                   -> ProcessMap a 
                   -> m (ProcessMap a)
 createProcessDwrk _gen _cnt MkT {..}  _ _ m = return m 
-createProcessDwrk gen cnt self@MkD {..} idxroot (pdgid',n) m
-    | pdgid' `elem` (prinfoid_pdgids dnode) = 
-        do let nkey = (prinfoid_ptlid dnode,pdgid') : idxroot
-           dproc <- gen self {dnode=dnode { prinfoid_pdgids = [pdgid'] }} n 
-           let newmap = HM.insert nkey dproc m 
-           cntr <- cnt dproc
-           rmap <- foldrM (f nkey (outcounter cntr)) newmap douts
-           return rmap 
-    | otherwise = 
-        fail ("createProcessDwrk : cannot find pdgid = " ++ show pdgid') --  ++ show self )
+createProcessDwrk gen cnt self@MkD {..} idxroot (pdgid',n) m 
+    = case lookupid pdgid' (ptl_procs dnode) of 
+        Nothing -> fail ("createProcessDwrk : cannot find pdgid = " ++ show pdgid') --  ++ show self )
+        Just prpdg -> do 
+          let nkey = (ptl_ptlid dnode,pdgid') : idxroot
+          dproc <- gen self {dnode=dnode { ptl_procs = [prpdg] }} n 
+          let newmap = HM.insert nkey dproc m 
+          cntr <- cnt dproc
+          rmap <- foldrM (f nkey (outcounter cntr)) newmap douts
+          return rmap 
   where f k cntrm dcy procm = createProcessD gen cnt dcy k procm (mkOccNumDecay dcy cntrm) 
 
 
--- go = generateEventSD self {dnode = (fst dnode,[pdgid'])}
--- return . DummyProcess =<< replicateM n go
+
+--    | pdgid' `elem` (map proc_pdgid (ptl_procs dnode)) = 
+
 
 -- | create process for a cross 
 
 createProcessX :: (Monad m) => 
-                  (SICross p -> Int -> m a) -- ^ generator function for cross
-               -> (SIDecay p -> Int -> m a) -- ^ generator function for decay 
+                  (CrossID p -> Int -> m a) -- ^ generator function for cross
+               -> (DecayID p -> Int -> m a) -- ^ generator function for decay 
                -> (a -> m Counter)          -- ^ counter function 
-               -> SICross p
+               -> CrossID p
                -> Int 
                -> m (ProcessMap a)
 createProcessX genX genD cnt cross@MkC {..} n = do 
