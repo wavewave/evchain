@@ -1,5 +1,5 @@
 {-# LANGUAGE GADTs, EmptyDataDecls, FlexibleInstances, StandaloneDeriving,
-             TypeSynonymInstances, RankNTypes, TupleSections #-}
+             TypeSynonymInstances, RankNTypes, TupleSections, RecordWildCards #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -74,7 +74,28 @@ d (a,ys) = MkD a ys
 -- | creates simple spec (as a general function)
 
 t :: tnode -> Decay dnode tnode
-t x = MkT x 
+t a = MkT a 
+
+-----------------------------------------------------------------------------
+-- transform simple spec into spec with ptlid 
+-----------------------------------------------------------------------------
+
+mkSIDecay :: ParticleID -> SDecay -> SIDecay
+mkSIDecay pid MkT {..} = MkT (pid,tnode) 
+mkSIDecay pid MkD {..} = MkD (pid,dnode) (zipWith mkSIDecay [1..] douts)
+
+-- | 
+
+mkSICross :: SCross -> SICross
+mkSICross MkC {..} = MkC () (inc1,inc2) outs 
+  where inc1 = mkSIDecay 1 (fst xincs) 
+        inc2 = mkSIDecay 2 (snd xincs)
+        outs = zipWith mkSIDecay [1..] xouts
+
+
+
+
+
 
 -----------------------------------------------------------------------------
 -- Spec with Process Info 
@@ -103,19 +124,3 @@ dpcom p (ids,ys) = MkD (map (p,) ids) ys
 
 
 
-{- 
-
-makeDecayID :: ParticleID -> SDecayTop -> DecayID
-makeDecayID idnum (GTerminal (TNode n)) = GTerminal (TNode (idnum,n))
-makeDecayID idnum (GDecay (DNode n procid,ys)) = GDecay (DNode (idnum,n) procid,dtable)
-  where dtable = zipWith makeDecayID [1..] ys
-
--- | 
-
-makeCrossID :: SCross -> CrossID
-makeCrossID (GCross procid inc out) = GCross procid incnew outnew 
-  where incnew = zipWith makeDecayID [1..] inc
-        outnew = zipWith makeDecayID [length inc+1..] out
-
-
--}

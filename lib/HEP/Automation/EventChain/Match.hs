@@ -21,7 +21,7 @@ import           Control.Applicative
 import           Control.Monad.Error
 import           Control.Monad.State
 -- import           Data.Foldable (foldrM)
-import qualified Data.IntMap as IM
+-- import qualified Data.IntMap as IM
 -- other hep-platform package 
 import           HEP.Parser.LHEParser.Type
 -- from this package
@@ -81,24 +81,24 @@ getX :: (Functor m, Monad m) => (DecayID,DecayID,[DecayID]) -> MatchM m MatchInO
 getX (in1,in2,outs) = do in1' <- checkD In in1 
                          in2' <- checkD In in2 
                          outs' <- mapM (checkD Out) outs 
-                         rem <- lift get
-                         return (MIO [in1',in2'] outs' rem)
+                         rs <- lift get
+                         return (MIO [in1',in2'] outs' rs)
 
 -- | 
 
 getMatchedLHEvent :: ProcessID -> LHEvent -> MatchInOut -> MatchedLHEventProcess
-getMatchedLHEvent procid ev@(LHEvent einfo pinfos) (MIO ins outs rs) = 
+getMatchedLHEvent procid ev@(LHEvent einfo _pinfos) (MIO ins outs rs) = 
     MLHEvent procid ev einfo (map (either tnodef dnodef) ins) (map (either tnodef dnodef) outs) rs 
   where tnodef :: (ParticleID,PtlInfo) -> (Either ParticleID (ParticleID,ProcessID), PtlInfo)
         tnodef (pid,pinfo) = (Left pid, pinfo)
         
         dnodef :: (ParticleID,(ProcessID,PtlInfo)) -> (Either ParticleID (ParticleID,ProcessID), PtlInfo)
-        dnodef (pid,(procid,pinfo)) = (Right (pid,procid), pinfo)
+        dnodef (pid,(prcid,pinfo)) = (Right (pid,prcid), pinfo)
 
 -- | 
 
 matchX :: (Functor m, Monad m) => CrossID -> LHEvent -> m (Either String MatchedLHEventProcess)
-matchX (MkC {..}) ev@(LHEvent einfo pinfos) = evalStateT (runErrorT m) pinfos
+matchX (MkC {..}) ev@(LHEvent _einfo pinfos) = evalStateT (runErrorT m) pinfos
   where m = do let (in1,in2) = xincs
                mio <- getX (in1,in2,xouts)  
                return (getMatchedLHEvent xnode ev mio)
@@ -108,7 +108,7 @@ matchX (MkC {..}) ev@(LHEvent einfo pinfos) = evalStateT (runErrorT m) pinfos
 matchD :: (Functor m, Monad m) => PDGID -> DecayID -> LHEvent 
        -> m (Either String MatchedLHEventProcess)
 matchD _ (MkT {..}) _ = return (Left "cannot match a process with terminal node")
-matchD pdgid' (MkD {..}) ev@(LHEvent einfo pinfos) = evalStateT (runErrorT m) pinfos 
+matchD pdgid' (MkD {..}) ev@(LHEvent _einfo pinfos) = evalStateT (runErrorT m) pinfos 
   where m = do let procs = ptl_procs dnode  
                    ptlid' = ptl_ptlid dnode 
                case (lookupid pdgid' procs) of 
@@ -116,8 +116,8 @@ matchD pdgid' (MkD {..}) ev@(LHEvent einfo pinfos) = evalStateT (runErrorT m) pi
                  Just (ProcPDG procid' _) -> do 
                    i' <- Left . (ptlid',)  <$> match1 In pdgid' 
                    os' <- mapM (checkD Out) douts 
-                   rem <- lift get 
-                   let mio = (MIO [i'] os' rem)
+                   rs' <- lift get 
+                   let mio = (MIO [i'] os' rs')
                    return (getMatchedLHEvent procid' ev mio)
     
 

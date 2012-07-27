@@ -26,7 +26,9 @@ module HEP.Automation.EventChain.Type.Skeleton where
 import           Control.Applicative
 import           Data.Foldable
 import           Data.Traversable
-import qualified Data.Vec as Vec
+-- import qualified Data.Vec as Vec
+-- import           Data.Hashable 
+
 
 import Prelude hiding (foldr)
 
@@ -43,10 +45,18 @@ instance Traversable ((,) b) where
 -- | 
 
 data Cross x d t = MkC { xnode :: x 
-                       , xincs :: (Decay d t, Decay d t) 
-                       , xouts :: [Decay d t] } 
+                       , xincs :: (Decay d t, Decay d t)  -- ^ two incoming particle trees
+                       , xouts :: [Decay d t] }           -- ^ a list of outgoing particle trees 
+
+deriving instance (Show x, Show d, Show t) => Show (Cross x d t)
 
 deriving instance (Eq x,Eq d, Eq t) => Eq (Cross x d t)
+
+{-
+instance (Hashable x, Hashable d, Hashable t) => Hashable (Cross x d t) where 
+  hash MkC {..} = hash xnode `hashWithSalt` xincs `hashWithSalt` xouts 
+  hashWithSalt s MkC {..} = s `hashWithSalt` xnode `hashWithSalt` xincs `hashWithSalt` xouts 
+-}
 
 -- | 
 
@@ -54,7 +64,17 @@ data Decay d t = MkD { dnode :: d
                      , douts :: [Decay d t] } 
                | MkT { tnode :: t }
 
+deriving instance (Show d, Show t) => Show (Decay d t) 
+
 deriving instance (Eq d, Eq t) => Eq (Decay d t) 
+
+{-
+instance (Hashable d, Hashable t) => Hashable (Decay d t) where
+  hash MkD {..} = 0 `hashWithSalt` dnode `hashWithSalt` douts 
+  hash MkT {..} = 1 `hashWithSalt` tnode 
+  hashWithSalt s MkD {..} = s `combine` 0 `hashWithSalt` dnode `hashWithSalt` douts 
+  hashWithSalt s MkT {..} = s `combine` 1 `hashWithSalt` tnode 
+-}
 
 -- | general pullback definition
 

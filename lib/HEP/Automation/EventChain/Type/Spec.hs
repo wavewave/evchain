@@ -64,6 +64,17 @@ type SCross = Cross () [PDGID] [PDGID]
 
 type SDecay = Decay [PDGID] [PDGID]
 
+
+-- | 
+
+type SICross = Cross () (ParticleID,[PDGID]) (ParticleID,[PDGID])
+
+-- | 
+
+type SIDecay = Decay (ParticleID,[PDGID]) (ParticleID,[PDGID]) 
+
+-- | 
+
 -- | 
 
 type SPCross p = Cross p [(p,PDGID)] [PDGID]
