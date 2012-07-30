@@ -22,6 +22,7 @@ import qualified Data.HashMap.Lazy as HM
 -- from other hep-platform packages 
 import           HEP.Parser.LHEParser.Type
 -- from this package
+import           HEP.Automation.EventChain.Type.Process
 import           HEP.Automation.EventChain.Type.Skeleton
 import           HEP.Automation.EventChain.Type.Spec
 

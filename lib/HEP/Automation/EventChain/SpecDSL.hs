@@ -17,7 +17,10 @@
 
 module HEP.Automation.EventChain.SpecDSL where
 
+-- from other hep-platform package
 import HEP.Parser.LHEParser.Type (PDGID)
+-- from this package
+import HEP.Automation.EventChain.Type.Process
 import HEP.Automation.EventChain.Type.Skeleton
 import HEP.Automation.EventChain.Type.Spec
 
@@ -160,5 +163,4 @@ mkDecayIDIdx idxroot MkD {..} = MkD ndnode (map (mkDecayIDIdx nidx) douts)
         ndnode = PtlProcPDG pid (map mkidx pdgids) 
         mkidx :: PDGID -> ProcPDG ProcSmplIdx 
         mkidx i = ProcPDG nidx i
-
 

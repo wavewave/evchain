@@ -19,9 +19,10 @@
 module HEP.Automation.EventChain.Type.Spec where
 
 -- from other hep-platform packages 
-import HEP.Parser.LHEParser.Type (PDGID)
+import           HEP.Parser.LHEParser.Type (PDGID)
 -- from this package
-import HEP.Automation.EventChain.Type.Skeleton
+import           HEP.Automation.EventChain.Type.Skeleton
+-- import           HEP.Automation.EventChain.Type.Process
 
 
 -- | status : -1 : incoming, 1 : outgoing, 2 : intermediate
@@ -75,29 +76,6 @@ type DICross = Cross () (ParticleID,[PDGID]) (ParticleID,[PDGID])
 
 type DIDecay = Decay (ParticleID,[PDGID]) (ParticleID,[PDGID]) 
 
------------------------------------------------------------------------------
--- with process info 
------------------------------------------------------------------------------
-
--- | 
-
-type ProcessIndex = [(ParticleID,PDGID)] 
-
--- | 
- 
-type ProcSmplIdx = [ParticleID]
-
-
--- | process id for identifying LHE files
-
-type ProcessID = Int
-
-
--- | Process Info  
-
-type ProcessInfo = String 
-
--- | 
 
 data ProcInfoPtlIDs p = PrInfoID { prinfoid_proc :: p 
                                  , prinfoid_ptlid :: ParticleID

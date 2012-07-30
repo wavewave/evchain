@@ -89,6 +89,7 @@ Library
                    HEP.Automation.EventChain.Simulator
                    HEP.Automation.EventChain.SpecDSL
                    HEP.Automation.EventChain.Type.Match 
+                   HEP.Automation.EventChain.Type.Process
                    HEP.Automation.EventChain.Type.Skeleton
                    HEP.Automation.EventChain.Type.Spec                   
 --                   HEP.Automation.MadGraph.EventChain.Util

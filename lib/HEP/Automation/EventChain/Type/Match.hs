@@ -61,7 +61,7 @@ deriving instance (Show p, Show tnode, Show dnode) => Show (MatchedLHEvent p tno
 type MatchedLHEventProcess p = MatchedLHEvent p ParticleID (ParticleID,p) 
 
 
-
+{-
 -- | coordinate for a particle in a given collection of processes 
 
 type ParticleCoord = (ProcessID,ParticleID)
@@ -69,7 +69,7 @@ type ParticleCoord = (ProcessID,ParticleID)
 -- | coord storage for particles  
 
 type ParticleCoordMap = M.Map ParticleCoord PtlID 
-
+-}
 
 
 

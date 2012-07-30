@@ -43,10 +43,10 @@ spec_ttbar_idx = mkCrossIDIdx (mkDICross spec_ttbar )
 
 main = do 
   print spec_ttbar_idx
-{-
+
   rm <- createProcessX testmadgraphX testmadgraphD (lheCounter spec_testX) spec_testX 100 
   print rm 
   -- print (HM.map (length.events) rm)
--}
+
 
 

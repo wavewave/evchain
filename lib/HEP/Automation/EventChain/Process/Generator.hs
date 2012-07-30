@@ -40,6 +40,7 @@ import           HEP.Parser.LHEParser.Type
 import           HEP.Automation.EventChain.FileDriver 
 import           HEP.Automation.EventChain.Process
 import           HEP.Automation.EventChain.Match 
+import           HEP.Automation.EventChain.Type.Process
 import           HEP.Automation.EventChain.Type.Skeleton
 import           HEP.Automation.EventChain.Type.Spec 
 
@@ -55,12 +56,12 @@ scriptsetup = SS {
 
 
 
-processSetup :: String -> ProcessSetup SM
-processSetup pname = PS {  
+processSetup :: String -> String -> ProcessSetup SM
+processSetup pname wname = PS {  
     model = SM
   , process = pname -- "\ngenerate P P > t t~ QED=99\n"
   , processBrief = "TTBar" 
-  , workname   = "Test20120727TTBar"
+  , workname   = wname 
   }
 
 pset :: ModelParam SM
@@ -93,18 +94,18 @@ rsetup n = RS { param = SMParam
               , setnum  = 1
               }
 
-wsetup :: String -> Int -> WorkSetup SM 
-wsetup str n 
-  = WS scriptsetup (processSetup str) (rsetup n) 
+wsetup :: String -> String -> Int -> WorkSetup SM 
+wsetup str wname n 
+  = WS scriptsetup (processSetup str wname) (rsetup n) 
        (CS NoParallel) (WebDAVRemoteDir "")
 
 
 
 
-work :: String -> Int -> IO String 
-work str n  = do 
+work :: String -> String -> Int -> IO String 
+work str wname n  = do 
     putStrLn "models : sm "
-    r <- flip runReaderT (wsetup str n) . runErrorT $ do 
+    r <- flip runReaderT (wsetup str wname n) . runErrorT $ do 
         WS ssetup psetup rsetup _ _ <- ask 
         createWorkDir ssetup psetup
         cardPrepare                      
@@ -120,7 +121,7 @@ work str n  = do
 
 
 testmadgraphX :: CrossID ProcessInfo -> Int -> IO FilePath  
-testmadgraphX MkC {..} n = do str <-  work xnode n 
+testmadgraphX MkC {..} n = do str <-  work xnode "TestMadGraph" n  
                               putStrLn str 
                               return str 
                               
