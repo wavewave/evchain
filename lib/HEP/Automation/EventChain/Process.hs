@@ -26,9 +26,6 @@ import           HEP.Automation.EventChain.Type.Skeleton
 import           HEP.Automation.EventChain.Type.Spec
 
 
--- | 
-
-type ProcessIndex = [(ParticleID,PDGID)] 
 
 
 -- | 

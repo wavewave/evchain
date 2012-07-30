@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables, StandaloneDeriving #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -50,6 +50,7 @@ data MatchedLHEvent p tnode dnode =
                   , mlhev_outgoing :: [(Either tnode dnode, PtlInfo)]
                   , mlhev_intermediate :: [PtlInfo] } 
 
+deriving instance (Show p, Show tnode, Show dnode) => Show (MatchedLHEvent p tnode dnode)
 
 -- -- | default type for MatchedLHEvent 
 
@@ -58,6 +59,8 @@ data MatchedLHEvent p tnode dnode =
 -- | MatchedLHEvent with Decay structure 
 
 type MatchedLHEventProcess p = MatchedLHEvent p ParticleID (ParticleID,p) 
+
+
 
 -- | coordinate for a particle in a given collection of processes 
 

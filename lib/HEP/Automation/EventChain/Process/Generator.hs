@@ -19,8 +19,10 @@ module HEP.Automation.EventChain.Process.Generator where
 -- from other packages from others
 import           Control.Monad.Reader 
 import           Control.Monad.Error
+import           Control.Monad.State 
 import           Data.Conduit
 import qualified Data.Conduit.List as CL
+import           Data.Maybe 
 import qualified Data.HashMap.Lazy as HM 
 import           System.FilePath
 import           System.IO
@@ -33,9 +35,11 @@ import           HEP.Automation.MadGraph.UserCut
 import           HEP.Automation.MadGraph.Util 
 import           HEP.Automation.MadGraph.Run
 import           HEP.Storage.WebDAV
+import           HEP.Parser.LHEParser.Type
 -- from this package 
 import           HEP.Automation.EventChain.FileDriver 
 import           HEP.Automation.EventChain.Process
+import           HEP.Automation.EventChain.Match 
 import           HEP.Automation.EventChain.Type.Skeleton
 import           HEP.Automation.EventChain.Type.Spec 
 
@@ -124,13 +128,21 @@ testmadgraphX MkC {..} n = do str <-  work xnode n
 testmadgraphD :: DecayID ProcessInfo -> Int -> IO FilePath 
 testmadgraphD = error "not implemented"
 
-lheCounter :: FilePath -> IO Counter 
-lheCounter fp = do 
+lheCounter :: CrossID ProcessInfo -> FilePath -> IO Counter 
+lheCounter cross fp = do 
     h <- openFile fp ReadMode
-    lst <- evtsHandle True h $$ CL.consume  
-    print lst 
+    evtsHandle True h $$ CL.mapM_ (countingSingleEvent cross.fromJust) --- CL.consume  
+    -- print lst 
     return (Counter HM.empty HM.empty)
 
-{-
-countingSingleEvent :: LHEvent -> Counter -> Counter
-countingSingleEvent ev@LHEvent {..} (Counter incomingm outgoingm) = Counter -}
+
+countingSingleEvent :: CrossID ProcessInfo -> LHEvent -> IO () 
+countingSingleEvent cross ev@LHEvent {..} = do 
+    r <- matchX cross ev  -- evalStateT (runErrorT m) lhe_ptlinfos
+    case r of 
+      Left err -> print err
+      Right a -> print a
+    return () 
+
+  -- where m = matchX cross --  match1 Out 6 
+

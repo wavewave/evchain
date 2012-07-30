@@ -122,7 +122,7 @@ mkDICross :: DCross -> DICross
 mkDICross MkC {..} = MkC () (inc1,inc2) outs 
   where inc1 = mkDIDecay 1 (fst xincs) 
         inc2 = mkDIDecay 2 (snd xincs)
-        outs = zipWith mkDIDecay [1..] xouts
+        outs = zipWith mkDIDecay [3..] xouts
 
 -- | 
 
@@ -139,7 +139,26 @@ mkSICross MkC {..} = MkC xnode (inc1,inc2) outs
         inc2 = mkSIDecay 2 (snd xincs)
         outs = zipWith mkSIDecay [1..] xouts
 
+-- | 
 
+mkCrossIDIdx :: DICross -> CrossID ProcSmplIdx 
+mkCrossIDIdx MkC {..} = MkC [] (i1,i2) outs
+  where xinc1 = fst xincs
+        xinc2 = snd xincs  
+        i1 = mkDecayIDIdx [] xinc1 
+        i2 = mkDecayIDIdx [] xinc2 
+        outs = map (mkDecayIDIdx []) xouts 
 
+-- | 
+
+mkDecayIDIdx :: ProcSmplIdx -> DIDecay -> DecayID ProcSmplIdx
+mkDecayIDIdx idxroot MkT {..} = MkT tnode 
+mkDecayIDIdx idxroot MkD {..} = MkD ndnode (map (mkDecayIDIdx nidx) douts) 
+  where pid = fst dnode 
+        pdgids = snd dnode 
+        nidx = pid:idxroot 
+        ndnode = PtlProcPDG pid (map mkidx pdgids) 
+        mkidx :: PDGID -> ProcPDG ProcSmplIdx 
+        mkidx i = ProcPDG nidx i
 
 

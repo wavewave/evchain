@@ -31,18 +31,22 @@ spec_testX = MkC "\ngenerate P P > t t~ QED=99\n"
 
 
 
-main = do 
+spec_ttbar = x (t proton,t proton, [spec_topdecay, spec_antitopdecay]) 
 
-  rm <- createProcessX testmadgraphX testmadgraphD lheCounter spec_testX 100 
+spec_topdecay = d ([6], [24,5] ) 
+
+spec_antitopdecay = d ([-6], [-24,-5])
+
+
+spec_ttbar_idx = mkCrossIDIdx (mkDICross spec_ttbar )
+
+
+main = do 
+  print spec_ttbar_idx
+{-
+  rm <- createProcessX testmadgraphX testmadgraphD (lheCounter spec_testX) spec_testX 100 
   print rm 
   -- print (HM.map (length.events) rm)
-{-
-  case HM.lookup [] rm of 
-    Nothing -> error "hey"
-    Just proc -> do let c = countProcess proc
-                        nlst = mkOccNum 1 (incounter c) 
-                    print c 
-                    print nlst 
-                 
 -}
+
 

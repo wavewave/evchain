@@ -23,9 +23,6 @@ import HEP.Parser.LHEParser.Type (PDGID)
 -- from this package
 import HEP.Automation.EventChain.Type.Skeleton
 
--- | process id for identifying LHE files
-
-type ProcessID = Int
 
 -- | status : -1 : incoming, 1 : outgoing, 2 : intermediate
 
@@ -82,6 +79,20 @@ type DIDecay = Decay (ParticleID,[PDGID]) (ParticleID,[PDGID])
 -- with process info 
 -----------------------------------------------------------------------------
 
+-- | 
+
+type ProcessIndex = [(ParticleID,PDGID)] 
+
+-- | 
+ 
+type ProcSmplIdx = [ParticleID]
+
+
+-- | process id for identifying LHE files
+
+type ProcessID = Int
+
+
 -- | Process Info  
 
 type ProcessInfo = String 
@@ -136,25 +147,6 @@ data PtlProcPDG p = PtlProcPDG { ptl_ptlid :: ParticleID
                     deriving (Show,Eq)
 
 
-{-
--- | 
-
-lookupPDGID :: PtlProcPDG p -> PDGID -> Maybe (ProcPDG p) 
-lookupPDGID PtlProcPDG {..} pdgid' = 
-  let flst = filter (\x -> proc_pdgid x == pdgid') ptl_procs  
-  in if (not.null) flst then Just (head flst) else Nothing 
-
--}
-
--- | utility function for looking id up from a list of ProcPDG 
-
-lookupid :: PDGID -> [ProcPDG p] -> Maybe (ProcPDG p)
-lookupid pdgid' lst = let flst = filter f lst
-                      in if (not.null) flst then Just (head flst) else Nothing 
-  where f proc = pdgid' == proc_pdgid proc
-
-
-
 -- | type for cross process with only ids 
 
 type CrossID p = Cross p (PtlProcPDG p) (ParticleID,[PDGID])
@@ -174,6 +166,25 @@ instance Num (Decay a [PDGID] ) where
   abs _ = error " no abs defined for SDecay"
   signum _ = error " no signum defined for SDecay"  
   fromInteger n = MkT [fromInteger n]
+
+{-
+-- | 
+
+lookupPDGID :: PtlProcPDG p -> PDGID -> Maybe (ProcPDG p) 
+lookupPDGID PtlProcPDG {..} pdgid' = 
+  let flst = filter (\x -> proc_pdgid x == pdgid') ptl_procs  
+  in if (not.null) flst then Just (head flst) else Nothing 
+
+-}
+
+-- | utility function for looking id up from a list of ProcPDG 
+
+lookupid :: PDGID -> [ProcPDG p] -> Maybe (ProcPDG p)
+lookupid pdgid' lst = let flst = filter f lst
+                      in if (not.null) flst then Just (head flst) else Nothing 
+  where f proc = pdgid' == proc_pdgid proc
+
+
 
 
 
