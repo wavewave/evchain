@@ -38,12 +38,15 @@ type ProcSmplIdx = [ParticleID]
 
 -- | 
 
-type ProcessMatchIdx = Maybe (ParticleID,PDGID,ProcSmplIdx) 
+type ProcSpecIdx = Maybe (ParticleID,PDGID,ProcSmplIdx) 
 
 -- | 
 
-type ProcessTable = HM.HashMap ProcessMatchIdx ProcessInfo 
+type ProcSpecMap = HM.HashMap ProcSpecIdx ProcessInfo 
 
+-- | 
+
+-- type GeneratorM m = StateT ProcessTable m 
 
 -- | process id for identifying LHE files
 
@@ -59,7 +62,7 @@ type ProcessInfo = String
 
 -- | 
 
-mkPMIdx :: ProcSmplIdx -> PDGID -> ProcessMatchIdx 
+mkPMIdx :: ProcSmplIdx -> PDGID -> ProcSpecIdx 
 mkPMIdx [] _ = error "cannot have this case."
 mkPMIdx (i:is) pdgid' = Just (i,pdgid',is)
 

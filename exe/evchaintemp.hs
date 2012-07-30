@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables, RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables, NoMonomorphismRestriction, RecordWildCards #-}
 
 module Main where
 
@@ -7,10 +7,13 @@ import qualified Data.HashMap.Lazy as HM
 
 import HEP.Automation.EventChain.Type.Skeleton
 import HEP.Automation.EventChain.Type.Spec
+-- import HEP.Automation.EventChain.Type.Process
 import HEP.Automation.EventChain.SpecDSL
 import HEP.Automation.EventChain.Simulator 
 import HEP.Automation.EventChain.Process
 import HEP.Automation.EventChain.Process.Generator
+
+
 
 {-
 spec_testD = dc ("hello",[1,2,3],[1,2,dc ("test2",[3,9,10],[2,2])])
@@ -40,11 +43,17 @@ spec_antitopdecay = d ([-6], [-24,-5])
 
 spec_ttbar_idx = mkCrossIDIdx (mkDICross spec_ttbar )
 
+-- pmap :: ProcSpecMap
+pmap = HM.fromList [(Nothing,"\ngenerate P P > t t~ QED=99\n")
+                   ,(Just (3,6,[]), "\ngenerate t > w+ b QED=99\n" )
+                   ,(Just (4,-6,[]), "\ngenerate t~ > w- b~ QED=99\n")
+                   ] 
 
 main = do 
   print spec_ttbar_idx
 
-  rm <- createProcessX testmadgraphX testmadgraphD (lheCounter spec_testX) spec_testX 100 
+  rm <- createProcessX (generateX pmap) (generateD pmap) 
+          (lheCounter spec_ttbar_idx) spec_ttbar_idx 100 
   print rm 
   -- print (HM.map (length.events) rm)
 

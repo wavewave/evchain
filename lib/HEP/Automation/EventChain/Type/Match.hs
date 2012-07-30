@@ -72,21 +72,3 @@ type ParticleCoordMap = M.Map ParticleCoord PtlID
 -}
 
 
-
-{-
--- | match function type to find a particle with a given pdgid and 
---   status criterion
-
-data SelectFunc = SelectFunc { selectFunc :: (PDGID,Status) -> Bool 
-                             , description :: String }
-
--- | (ProcessID,SelectFunc)
-
-data ProcSel = ProcSel { procsel_procid :: ProcessID
-                       , procsel_sel :: SelectFunc } 
-
--- | (ParticleID,[(ProcessID,SelectFunc)])
-
-data PtlProcSel = PtlProcSel { ptlsel_ptlid :: ParticleID
-                             , ptlsel_procsels :: [ProcSel] } 
--}

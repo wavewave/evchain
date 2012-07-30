@@ -17,13 +17,16 @@
 module HEP.Automation.EventChain.Process.Generator where
 
 -- from other packages from others
+import           Control.Concurrent (threadDelay)
 import           Control.Monad.Reader 
 import           Control.Monad.Error
 import           Control.Monad.State 
 import           Data.Conduit
 import qualified Data.Conduit.List as CL
 import           Data.Maybe 
+import           Data.Hashable (hash)
 import qualified Data.HashMap.Lazy as HM 
+import           Numeric
 import           System.FilePath
 import           System.IO
 -- from hep-platform packages 
@@ -40,6 +43,7 @@ import           HEP.Parser.LHEParser.Type
 import           HEP.Automation.EventChain.FileDriver 
 import           HEP.Automation.EventChain.Process
 import           HEP.Automation.EventChain.Match 
+import           HEP.Automation.EventChain.Type.Match 
 import           HEP.Automation.EventChain.Type.Process
 import           HEP.Automation.EventChain.Type.Skeleton
 import           HEP.Automation.EventChain.Type.Spec 
@@ -59,7 +63,7 @@ scriptsetup = SS {
 processSetup :: String -> String -> ProcessSetup SM
 processSetup pname wname = PS {  
     model = SM
-  , process = pname -- "\ngenerate P P > t t~ QED=99\n"
+  , process = pname 
   , processBrief = "TTBar" 
   , workname   = wname 
   }
@@ -129,21 +133,58 @@ testmadgraphX MkC {..} n = do str <-  work xnode "TestMadGraph" n
 testmadgraphD :: DecayID ProcessInfo -> Int -> IO FilePath 
 testmadgraphD = error "not implemented"
 
-lheCounter :: CrossID ProcessInfo -> FilePath -> IO Counter 
+lheCounter :: (Show p) => CrossID p -> FilePath -> IO Counter 
 lheCounter cross fp = do 
+    putStrLn fp 
     h <- openFile fp ReadMode
-    evtsHandle True h $$ CL.mapM_ (countingSingleEvent cross.fromJust) --- CL.consume  
-    -- print lst 
-    return (Counter HM.empty HM.empty)
+    r <- evtsHandle True h =$= CL.map fromJust 
+          $$ CL.foldM (countingSingleEvent cross) (Counter HM.empty HM.empty)   
+    return r
 
 
-countingSingleEvent :: CrossID ProcessInfo -> LHEvent -> IO () 
-countingSingleEvent cross ev@LHEvent {..} = do 
-    r <- matchX cross ev  -- evalStateT (runErrorT m) lhe_ptlinfos
+-- |
+
+countingSingleEvent :: (Show p) => CrossID p -> Counter -> LHEvent -> IO Counter 
+countingSingleEvent cross (Counter incomingm outgoingm) ev@LHEvent {..}  = do 
+    r <- matchX cross ev 
     case r of 
-      Left err -> print err
-      Right a -> print a
-    return () 
+      Left err -> fail err
+      Right MLHEvent {..} -> do 
+        let f (Right (pid,_),pinfo) m = HM.insertWith (+) (pid,idup pinfo) 1 m
+            f (Left pid,pinfo) m = HM.insertWith (+) (pid,idup pinfo) 1 m  
+            rim = foldr f incomingm mlhev_incoming 
+            rom = foldr f outgoingm mlhev_outgoing
+        print rim
+        print rom 
+        return (Counter rim rom)
 
-  -- where m = matchX cross --  match1 Out 6 
+
+-- | 
+
+generateX :: ProcSpecMap -> CrossID ProcSmplIdx -> Int -> IO FilePath  
+generateX pm MkC {..} n = do 
+    case HM.lookup Nothing pm of 
+      Nothing -> fail "what? no root process in map?"
+      Just str -> do 
+        let nwname = "Test"++ show (hash (str,[] :: ProcSmplIdx))  
+        print nwname 
+        r <- work str nwname n 
+        threadDelay 1000000
+        return r 
+
+-- | Single PDGID in dnode is assumed. 
+
+generateD :: ProcSpecMap -> DecayID ProcSmplIdx -> Int -> IO FilePath
+generateD pm MkD {..} n = do 
+    let psidx = (proc_procid . head . ptl_procs) dnode 
+        pdgid' = (proc_pdgid . head . ptl_procs ) dnode
+        pmidx  = mkPMIdx psidx pdgid' 
+    case HM.lookup pmidx pm of 
+      Nothing -> fail "cannot find process for pmidx"
+      Just str -> do 
+        let nwname = "Test"++ show (hash (str,pmidx))  
+        print nwname 
+        r <- work str nwname n 
+        threadDelay 1000000
+        return r   
 
