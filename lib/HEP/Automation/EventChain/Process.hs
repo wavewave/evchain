@@ -59,37 +59,37 @@ mkOccNumDecay MkD {..} cntr = mkOccNum (ptl_ptlid dnode) cntr
 
 createProcessD :: (Monad m) => 
                   (DecayID p -> Int -> m a) 
-               -> (a -> m Counter)
+               -> (PDGID -> DecayID p -> a -> m Counter)
                -> DecayID p 
                -> ProcessIndex 
                -> ProcessMap a 
                -> [(PDGID,Int)] 
                -> m (ProcessMap a)
-createProcessD gen cnt decay idxroot procm lst = 
-    foldrM (createProcessDwrk gen cnt decay idxroot) procm lst
+createProcessD gen cntd decay idxroot procm lst = 
+    foldrM (createProcessDwrk gen cntd decay idxroot) procm lst
 
 -- | 
 
 createProcessDwrk :: (Monad m) =>
                      (DecayID p -> Int -> m a) -- ^ generator function for decay 
-                  -> (a -> m Counter)          -- ^ counter function for a 
+                  -> (PDGID -> DecayID p -> a -> m Counter)  -- ^ counter function for a 
                   -> DecayID p
                   -> ProcessIndex 
                   -> (PDGID,Int) 
                   -> ProcessMap a 
                   -> m (ProcessMap a)
-createProcessDwrk _gen _cnt MkT {..}  _ _ m = return m 
-createProcessDwrk gen cnt self@MkD {..} idxroot (pdgid',n) m 
+createProcessDwrk _gen _cntd MkT {..}  _ _ m = return m 
+createProcessDwrk gen cntd self@MkD {..} idxroot (pdgid',n) m 
     = case lookupid pdgid' (ptl_procs dnode) of 
         Nothing -> fail ("createProcessDwrk : cannot find pdgid = " ++ show pdgid') --  ++ show self )
         Just prpdg -> do 
           let nkey = (ptl_ptlid dnode,pdgid') : idxroot
           dproc <- gen self {dnode=dnode { ptl_procs = [prpdg] }} n 
           let newmap = HM.insert nkey dproc m 
-          cntr <- cnt dproc
+          cntr <- cntd pdgid' self dproc
           rmap <- foldrM (f nkey (outcounter cntr)) newmap douts
           return rmap 
-  where f k cntrm dcy procm = createProcessD gen cnt dcy k procm (mkOccNumDecay dcy cntrm) 
+  where f k cntrm dcy procm = createProcessD gen cntd dcy k procm (mkOccNumDecay dcy cntrm) 
 
 
 
@@ -101,13 +101,14 @@ createProcessDwrk gen cnt self@MkD {..} idxroot (pdgid',n) m
 createProcessX :: (Monad m) => 
                   (CrossID p -> Int -> m a) -- ^ generator function for cross
                -> (DecayID p -> Int -> m a) -- ^ generator function for decay 
-               -> (a -> m Counter)          -- ^ counter function 
+               -> (CrossID p -> a -> m Counter)  -- ^ counter function 
+               -> (PDGID -> DecayID p -> a -> m Counter) 
                -> CrossID p
                -> Int 
                -> m (ProcessMap a)
-createProcessX genX genD cnt cross@MkC {..} n = do 
+createProcessX genX genD cntx cntd cross@MkC {..} n = do 
     dproc <- genX cross n
-    cntr <- cnt dproc 
+    cntr <- cntx cross dproc 
     let newmap = HM.insert [] dproc HM.empty 
         xinc1 = fst xincs 
         xinc2 = snd xincs 
@@ -115,5 +116,5 @@ createProcessX genX genD cnt cross@MkC {..} n = do
     rmap1 <- foldrM (f (incounter cntr)) newmap ilst 
     rmap2 <- foldrM (f (outcounter cntr)) rmap1 xouts 
     return rmap2 
-  where f cntrm dcy procm = createProcessD genD cnt dcy [] procm (mkOccNumDecay dcy cntrm)
+  where f cntrm dcy procm = createProcessD genD cntd dcy [] procm (mkOccNumDecay dcy cntrm)
 

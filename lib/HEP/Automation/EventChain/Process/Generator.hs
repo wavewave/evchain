@@ -123,29 +123,20 @@ work str wname n  = do
         Right str -> return str 
 
 
+-- | 
 
-testmadgraphX :: CrossID ProcessInfo -> Int -> IO FilePath  
-testmadgraphX MkC {..} n = do str <-  work xnode "TestMadGraph" n  
-                              putStrLn str 
-                              return str 
-                              
-
-testmadgraphD :: DecayID ProcessInfo -> Int -> IO FilePath 
-testmadgraphD = error "not implemented"
-
-lheCounter :: (Show p) => CrossID p -> FilePath -> IO Counter 
-lheCounter cross fp = do 
-    putStrLn fp 
+lheCntX :: (Show p) => CrossID p -> FilePath -> IO Counter 
+lheCntX cross fp = do 
     h <- openFile fp ReadMode
     r <- evtsHandle True h =$= CL.map fromJust 
-          $$ CL.foldM (countingSingleEvent cross) (Counter HM.empty HM.empty)   
+          $$ CL.foldM (cnt1EvtX cross) (Counter HM.empty HM.empty)   
     return r
 
 
 -- |
 
-countingSingleEvent :: (Show p) => CrossID p -> Counter -> LHEvent -> IO Counter 
-countingSingleEvent cross (Counter incomingm outgoingm) ev@LHEvent {..}  = do 
+cnt1EvtX :: (Show p) => CrossID p -> Counter -> LHEvent -> IO Counter 
+cnt1EvtX cross (Counter incomingm outgoingm) ev@LHEvent {..}  = do 
     r <- matchX cross ev 
     case r of 
       Left err -> fail err
@@ -154,8 +145,29 @@ countingSingleEvent cross (Counter incomingm outgoingm) ev@LHEvent {..}  = do
             f (Left pid,pinfo) m = HM.insertWith (+) (pid,idup pinfo) 1 m  
             rim = foldr f incomingm mlhev_incoming 
             rom = foldr f outgoingm mlhev_outgoing
-        print rim
-        print rom 
+        return (Counter rim rom)
+
+-- | 
+
+lheCntD :: (Show p) => PDGID -> DecayID p -> FilePath -> IO Counter
+lheCntD i decay fp = do 
+    h <- openFile fp ReadMode
+    r <- evtsHandle True h =$= CL.map fromJust 
+          $$ CL.foldM (cnt1EvtD i decay) (Counter HM.empty HM.empty)   
+    return r
+
+-- | 
+
+cnt1EvtD :: (Show p) => PDGID -> DecayID p -> Counter -> LHEvent -> IO Counter 
+cnt1EvtD i decay (Counter incomingm outgoingm) ev@LHEvent {..} = do 
+    r <- matchD i decay ev 
+    case r of 
+      Left err -> fail err
+      Right MLHEvent {..} -> do 
+        let f (Right (pid,_),pinfo) m = HM.insertWith (+) (pid,idup pinfo) 1 m
+            f (Left pid,pinfo) m = HM.insertWith (+) (pid,idup pinfo) 1 m  
+            rim = foldr f incomingm mlhev_incoming 
+            rom = foldr f outgoingm mlhev_outgoing
         return (Counter rim rom)
 
 
@@ -187,4 +199,19 @@ generateD pm MkD {..} n = do
         r <- work str nwname n 
         threadDelay 1000000
         return r   
+
+--------
+--
+---------
+
+
+
+testmadgraphX :: CrossID ProcessInfo -> Int -> IO FilePath  
+testmadgraphX MkC {..} n = do str <-  work xnode "TestMadGraph" n  
+                              putStrLn str 
+                              return str 
+                              
+
+testmadgraphD :: DecayID ProcessInfo -> Int -> IO FilePath 
+testmadgraphD = error "not implemented"
 
