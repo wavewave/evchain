@@ -48,11 +48,12 @@ pmap = HM.fromList [(Nothing,"\ngenerate P P > t t~ QED=99\n")
                    ] 
 -}
 
-spec2_ttbar = x (t proton,t proton, [spec2_topdecay, t [5,-5]]) 
+{-
+spec2_tbbar = x (t proton,t proton, [spec2_topdecay, t [5,-5]]) 
 spec2_topdecay = d ([6,-6], [t [24,-24],t [5,-5]] ) 
 -- spec2_antitopdecay = d ([-6], [-24,-5])
 
-spec2_ttbar_idx = mkCrossIDIdx (mkDICross spec2_ttbar )
+spec2_tbbar_idx = mkCrossIDIdx (mkDICross spec2_tbbar )
 
 
 pmap2 :: ProcSpecMap
@@ -60,14 +61,33 @@ pmap2 = HM.fromList [(Nothing,"\ngenerate P P > t b~ QED=99\nadd process P P > t
                     ,(Just (3,6,[]), "\ngenerate t > w+ b QED=99\n" )
                     ,(Just (3,-6,[]), "\ngenerate t~ > w- b~ QED=99\n")
                     ] 
+-}
+
+
+spec3_tbbar = x (t proton,t proton, [spec3_topdecay, t [5,-5]]) 
+spec3_topdecay = d ([6,-6], [spec3_wdecay, t [5,-5]] ) 
+-- spec2_antitopdecay = d ([-6], [-24,-5])
+
+spec3_wdecay = d ([24,-24], [t [11,-11], t [12,-12]])
+
+spec3_tbbar_idx = mkCrossIDIdx (mkDICross spec3_tbbar )
+
+
+pmap3 :: ProcSpecMap
+pmap3 = HM.fromList [(Nothing,"\ngenerate P P > t b~ QED=99\nadd process P P > t~ b QED=99\n")
+                    ,(Just (3,6,[]), "\ngenerate t > w+ b QED=99\n" )
+                    ,(Just (3,-6,[]), "\ngenerate t~ > w- b~ QED=99\n")
+                    ,(Just (1,24,[3]),"\ngenerate w+ > e+ ve QED=99\n")
+                    ,(Just (1,-24,[3]),"\ngenerate w- > e- ve~ QED=99\n")
+                    ] 
 
 
 
 main = do 
-  print spec2_ttbar_idx
+  print spec3_tbbar_idx
 
-  rm <- createProcessX (generateX pmap2) (generateD pmap2) 
-          lheCntX lheCntD spec2_ttbar_idx 100 
+  rm <- createProcessX (generateX pmap3) (generateD pmap3) 
+          lheCntX lheCntD spec3_tbbar_idx 100 
   print rm 
   -- print (HM.map (length.events) rm)
 
