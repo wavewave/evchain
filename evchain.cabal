@@ -8,7 +8,8 @@ Author:		Ian-Woo Kim
 Maintainer: 	Ian-Woo Kim <ianwookim@gmail.com>
 Build-Type: 	Simple
 Cabal-Version:  >= 1.9.2
-data-files:     test/resources/*
+data-files:     test/resources/*.lhe
+                test/resources/*.lhe.gz
 
 Test-suite test-evchain 
   type:            exitcode-stdio-1.0
@@ -65,7 +66,6 @@ Library
                    xml-conduit == 1.0.*, 
                    vector, 
                    hmatrix, 
-                   pointed == 2.1.*,
                    Vec == 1.0.*,
                    random == 1.0.*,
                    unordered-containers == 0.2.*, 
