@@ -21,19 +21,19 @@ import           Control.Monad.Error
 import           Control.Monad.State
 import qualified Data.Map as M
 -- from other hep-platform package
-import           HEP.Parser.LHEParser.Type
+import           HEP.Parser.LHEParser.Type (PtlInfo,PDGID,LHEvent,EventInfo)
+import           HEP.Util.Functions
 -- from this package
+import           HEP.Automation.EventChain.Type.Skeleton
 import           HEP.Automation.EventChain.Type.Spec
 
 
 
 -- | Matching Monad 
-
 type MatchM m = ErrorT String (StateT [PtlInfo] m) 
  
 
 -- | 
-
 data MatchInOut p = 
   MIO { mio_incoming :: [Either (ParticleID,PtlInfo) (ParticleID,(p,PtlInfo))]
       , mio_outgoing :: [Either (ParticleID,PtlInfo) (ParticleID,(p,PtlInfo))]
@@ -41,7 +41,6 @@ data MatchInOut p =
       } 
 
 -- | data type for a single LHE event matched with a specified process node 
-
 data MatchedLHEvent p tnode dnode = 
          MLHEvent { mlhev_procinfo :: p, 
                     mlhev_orig :: LHEvent 
@@ -57,8 +56,30 @@ deriving instance (Show p, Show tnode, Show dnode) => Show (MatchedLHEvent p tno
 -- type MatchedLHEventSimple = MatchedLHEvent ParticleID 
 
 -- | MatchedLHEvent with Decay structure 
-
 type MatchedLHEventProcess p = MatchedLHEvent p ParticleID (ParticleID,p) 
+
+
+-- | 
+data PTriplet = PTriplet { pt_pid :: ParticleID
+                         , pt_pdgid :: PDGID
+                         , pt_pinfo :: PtlInfo } 
+
+-- | data type for event and context for a node 
+data ContextEvent p = 
+    CEvent 
+    { absoluteContext :: LorentzRotation -- ^ relative to cross frame 
+    , relativeContext :: Maybe (p, PTriplet) -- ^ relative to mother 
+    , selfEvent :: MatchedLHEventProcess p }
+
+
+-- | full decay info
+type DecayFull p = Decay ((ParticleID,PDGID),ContextEvent p) (ParticleID,PDGID) 
+
+-- | full cross info 
+type CrossFull p = Cross (ContextEvent p) 
+                         ((ParticleID,PDGID),ContextEvent p) 
+                         (ParticleID,PDGID) 
+
 
 
 {-

@@ -61,22 +61,18 @@ type ParticleID = Int
 -----------------------------------------------------------------------------
 
 -- | Dummy spec
-
 type DCross = Cross () [PDGID] [PDGID]
 
 -- | 
-
 type DDecay = Decay [PDGID] [PDGID]
 
 -- | particle id indexed spec
-
 type DICross = Cross () (ParticleID,[PDGID]) (ParticleID,[PDGID])
 
 -- | 
-
 type DIDecay = Decay (ParticleID,[PDGID]) (ParticleID,[PDGID]) 
 
-
+-- | 
 data ProcInfoPtlIDs p = PrInfoID { prinfoid_proc :: p 
                                  , prinfoid_ptlid :: ParticleID
                                  , prinfoid_pdgids :: [PDGID] } 
@@ -84,58 +80,42 @@ data ProcInfoPtlIDs p = PrInfoID { prinfoid_proc :: p
 
 
 -- | process per node 
-
 type SCross p = Cross p (p,[PDGID]) [PDGID]
 
 -- |
-
 type SDecay p = Decay (p,[PDGID]) [PDGID]
 
 -- | particle id indexed spec
-
 type SICross p = Cross p (ProcInfoPtlIDs p) (ParticleID,[PDGID])
 
 -- | 
-
 type SIDecay p = Decay (ProcInfoPtlIDs p) (ParticleID,[PDGID]) 
 
-
-
 -- | process per id 
-
 type SPCross p = Cross p [(p,PDGID)] [PDGID]
 
 -- | 
-
 type SPDecay p = Decay [(p,PDGID)] [PDGID] 
 
-
-
-
 -- | process and selection function pair  
-
 data ProcPDG p = ProcPDG { proc_procid :: p
                          , proc_pdgid :: PDGID } 
                  deriving (Show,Eq)
 
 -- | 
-
 data PtlProcPDG p = PtlProcPDG { ptl_ptlid :: ParticleID 
                                , ptl_procs :: [ProcPDG p] }
                     deriving (Show,Eq)
 
-
 -- | type for cross process with only ids 
-
 type CrossID p = Cross p (PtlProcPDG p) (ParticleID,[PDGID])
 
 -- | type for decay process with only ids
-
 type DecayID p = Decay (PtlProcPDG p) (ParticleID,[PDGID])
 
 
+
 -- |
- 
 instance Num (Decay a [PDGID] ) where
   _ + _ = error " no + defined for SDecay"
   negate (MkT [n]) = MkT [-n]

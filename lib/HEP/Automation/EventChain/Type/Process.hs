@@ -29,22 +29,19 @@ import           HEP.Automation.EventChain.Type.Spec
 -----------------------------------------------------------------------------
 
 -- | 
-
 type ProcessIndex = [(ParticleID,PDGID)] 
 
 -- | 
- 
 type ProcSmplIdx = [ParticleID]
 
 -- | 
-
 type ProcSpecIdx = Maybe (ParticleID,PDGID,ProcSmplIdx) 
 
 -- | 
-
 type ProcSpecMap = HM.HashMap ProcSpecIdx ProcessInfo 
 
 -- | 
+type ProcessMap a = HM.HashMap ProcessIndex a
 
 -- type GeneratorM m = StateT ProcessTable m 
 

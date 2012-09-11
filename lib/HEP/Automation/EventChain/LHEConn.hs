@@ -2,7 +2,7 @@
 
 -----------------------------------------------------------------------------
 -- |
--- Module      : HEP.Automation.MadGraph.EventChain.LHEConn
+-- Module      : HEP.Automation.EventChain.LHEConn
 -- Copyright   : (c) 2012 Ian-Woo Kim
 --
 -- License     : BSD3
@@ -14,14 +14,16 @@
 --
 -----------------------------------------------------------------------------
 
-module HEP.Automation.MadGraph.EventChain.LHEConn where 
+module HEP.Automation.EventChain.LHEConn where 
 -- other package of others
 import           Control.Applicative ((<$>),(<*>))
+import           Control.Monad.Identity (runIdentity)
 import           Control.Monad.State hiding (mapM)
 import           Data.Either
 import           Data.Foldable (foldr,foldrM)
-import           Data.Function (on)
-import qualified Data.IntMap as IM
+-- import           Data.Function (on)
+import qualified Data.HashMap.Lazy as HM 
+-- import qualified Data.IntMap as IM
 import           Data.List (intercalate, sortBy)
 import qualified Data.Map as M
 import           Data.Traversable 
@@ -32,60 +34,49 @@ import           System.IO
 import           HEP.Parser.LHEParser.Type
 import           HEP.Util.Functions
 -- this package
-import           HEP.Automation.MadGraph.EventChain.Print
-import           HEP.Automation.MadGraph.EventChain.Type 
-import           HEP.Automation.MadGraph.EventChain.Util
+-- import           HEP.Automation.EventChain.Print
+import           HEP.Automation.EventChain.Match
+import           HEP.Automation.EventChain.Type.Match
+import           HEP.Automation.EventChain.Type.Process
+import           HEP.Automation.EventChain.Type.Skeleton
+import           HEP.Automation.EventChain.Type.Spec
+import           HEP.Automation.EventChain.Util
 -- prelude
 import           Prelude hiding (mapM,foldr)
 
 -- | 
-
 type Status = Int
 
 
-
-
-
-
-
--- | 
-
-matchPtl4Decay :: (DNode (ParticleID,PKind) ProcessID, [DecayID])
-               -> LHEvent
-               -> Either String MatchedLHEvent
-matchPtl4Decay (inc,out) lhe = matchInOut procid (incids,outids) lhe 
-  where procid :: ProcessID
-        incids :: [(ParticleID,SelectFunc)]
-        (procid,incids) = case inc of DNode (x,y) p -> (p,[(x,mkSelFunc In y)])
-        outids = map (getSelPair Out) out 
-
--- | 
-
-matchFullDecay :: IM.IntMap LHEvent -- ^ event repository 
-               -> ContextEvent      -- ^ current context for mother
-               -> DecayID
-               -> Either String DecayFull
-matchFullDecay m ctxt (GTerminal (TNode (ptl_id,pkind))) = 
-    case pkind of 
-      KPDGID pdg_id -> return (GTerminal (TNode (ptl_id,pdg_id)))
-      _ -> return (GTerminal (TNode (ptl_id,0)))   -- this is very bad but I do not have any solution.
-matchFullDecay m ctxt (GDecay elem@(DNode (ptl_id,pkind) proc_id, ds)) = 
-    case pkind of 
-      KPDGID pdg_id -> case IM.lookup proc_id m of 
-                         Nothing -> Left $ show proc_id ++ " process doesn't exist"
-                         Just lhe -> do 
-                           mev <- matchPtl4Decay elem lhe
-                           let ptrip = findPTripletUsingPtlIDFrmOutPtls ptl_id momev 
-                               lxfrm = relLrntzXfrm ptrip momev
-                               momprocid = (mlhev_procid.selfEvent) ctxt 
-                           let dctxt = CEvent (olxfrm NL.<> lxfrm) (Just (momprocid,ptrip)) mev 
-                           mds <- mapM (matchFullDecay m dctxt) ds
-                           return (GDecay (DNode (ptl_id,pdg_id) dctxt, mds)) 
+matchFullDecay :: HM.HashMap ProcessIndex LHEvent -- ^ event repository 
+               -> ContextEvent ProcessIndex    -- ^ current context for mother
+               -> DecayID ProcessIndex  
+               -> Either String (DecayFull ProcessIndex)
+matchFullDecay m ctxt (MkT (ptl_id,pdg_ids)) = 
+    case pdg_ids of 
+      [pdg_id] -> return (MkT (ptl_id,pdg_id))
+      -- this is very bad but I do not have any solution.
+      _ -> return (MkT (ptl_id,0))   
+matchFullDecay m ctxt elem@(MkD dnode ds) = do 
+    let ptl_id = ptl_ptlid dnode 
+    case ptl_procs dnode of 
+      [ProcPDG proc_id pdg_id] -> 
+        case HM.lookup proc_id m of 
+          Nothing -> Left $ show proc_id ++ " process doesn't exist"
+          Just lhe -> do 
+            mev <- runIdentity (matchD pdg_id elem lhe)
+            let ptrip = findPTripletUsingPtlIDFrmOutPtls ptl_id momev 
+                lxfrm = relLrntzXfrm ptrip momev
+                momprocid = (mlhev_procinfo.selfEvent) ctxt 
+            let dctxt = CEvent (olxfrm NL.<> lxfrm) (Just (momprocid,ptrip)) mev
+            mds <- mapM (matchFullDecay m dctxt) ds
+            return (MkD ((ptl_id,pdg_id),dctxt) mds)
+      _ -> error "in matchFullDecay"   
   where momev = selfEvent ctxt
         olxfrm = absoluteContext ctxt
 
+{- 
 -- | 
-
 matchFullCross :: IM.IntMap LHEvent  -- ^ event repository 
                -> CrossID 
                -> Either String CrossFull
@@ -99,10 +90,7 @@ matchFullCross m g@(GCross (XNode pid) inc out) =
         (mos :: [DecayFull]) <- mapM (matchFullDecay m xcontext) out 
         return (GCross (XNode xcontext) mis mos)
 
-
-
 -- | 
-
 adjustPtlInfosInMLHEvent :: (PtlInfo -> PtlInfo, (ParticleID,PtlInfo) -> PtlInfo) 
                          -> MatchedLHEvent 
                          -> ParticleCoordMap 
@@ -118,7 +106,6 @@ adjustPtlInfosInMLHEvent (f,g) mev mm = (map snd inc,map snd out,int,mm'')
 
 
 -- | 
-
 accumTotalEvent :: CrossFull -> IO [PtlInfo]
 accumTotalEvent g = do (_,_,result,_) <- execStateT (traverse action g) 
                                                     (0,0, IM.empty :: IM.IntMap PtlInfo
@@ -161,21 +148,36 @@ accumTotalEvent g = do (_,_,result,_) <- execStateT (traverse action g)
               rmap4 = insertAll krm rmap3 
           put (stid+maxid-1,stcol+maxicol-minicol+1-coloffset,rmap4,stmm')
 
-
-
 -- | 
-
 motherAdjustID :: (PtlID,PtlID) -> PtlInfo -> PtlInfo
 motherAdjustID (oid,nid) = idAdj (\y -> if y == oid then nid else y)
 
-
 -- | 
-
 extractIDsFromMLHE :: MatchedLHEvent -> ([(ParticleID,PtlID)],[(ParticleID,PtlID)])
 extractIDsFromMLHE mlhe = 
   ( map (\x->(fst x, ptlid (snd x))) (mlhev_incoming mlhe)
   , map (\x->(fst x, ptlid (snd x))) (mlhev_outgoing mlhe) )
 
+
+-}
+
+
+--------------
+-- obsolete functions 
+----------------
+
+
+{-
+-- | 
+matchPtl4Decay :: (DNode (ParticleID,PKind) ProcessID, [DecayID])
+               -> LHEvent
+               -> Either String MatchedLHEvent
+matchPtl4Decay (inc,out) lhe = matchInOut procid (incids,outids) lhe 
+  where procid :: ProcessID
+        incids :: [(ParticleID,SelectFunc)]
+        (procid,incids) = case inc of DNode (x,y) p -> (p,[(x,mkSelFunc In y)])
+        outids = map (getSelPair Out) out 
+-}
 
       
 

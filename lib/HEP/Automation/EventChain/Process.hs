@@ -27,36 +27,23 @@ import           HEP.Automation.EventChain.Type.Skeleton
 import           HEP.Automation.EventChain.Type.Spec
 
 
-
-
--- | 
-
-type ProcessMap a = HM.HashMap ProcessIndex a
-
-
-
 -- | counting each particle id
-
 data Counter = Counter { incounter :: HM.HashMap (ParticleID,PDGID) Int 
                        , outcounter :: HM.HashMap (ParticleID,PDGID) Int }
              deriving (Show,Eq)
 
-  
 -- |
-
 mkOccNum :: ParticleID -> HM.HashMap (ParticleID,PDGID) Int -> [(PDGID,Int)] 
 mkOccNum pid = map (\((_,pdg),n)->(pdg,n)) 
                . HM.toList 
                . HM.filterWithKey (\(i,_) _ -> i == pid)
 
-
+-- | 
 mkOccNumDecay :: DecayID p -> HM.HashMap (ParticleID,PDGID) Int -> [(PDGID,Int)]
 mkOccNumDecay MkT {..} _ = [] 
 mkOccNumDecay MkD {..} cntr = mkOccNum (ptl_ptlid dnode) cntr 
 
-
 -- | create process for a decay 
-
 createProcessD :: (Monad m) => 
                   (DecayID p -> Int -> m a) 
                -> (PDGID -> DecayID p -> a -> m Counter)
@@ -69,7 +56,6 @@ createProcessD gen cntd decay idxroot procm lst =
     foldrM (createProcessDwrk gen cntd decay idxroot) procm lst
 
 -- | 
-
 createProcessDwrk :: (Monad m) =>
                      (DecayID p -> Int -> m a) -- ^ generator function for decay 
                   -> (PDGID -> DecayID p -> a -> m Counter)  -- ^ counter function for a 
@@ -91,13 +77,7 @@ createProcessDwrk gen cntd self@MkD {..} idxroot (pdgid',n) m
           return rmap 
   where f k cntrm dcy procm = createProcessD gen cntd dcy k procm (mkOccNumDecay dcy cntrm) 
 
-
-
---    | pdgid' `elem` (map proc_pdgid (ptl_procs dnode)) = 
-
-
 -- | create process for a cross 
-
 createProcessX :: (Monad m) => 
                   (CrossID p -> Int -> m a) -- ^ generator function for cross
                -> (DecayID p -> Int -> m a) -- ^ generator function for decay 
