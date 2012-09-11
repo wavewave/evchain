@@ -48,7 +48,7 @@ import           Prelude hiding (mapM,foldr)
 type Status = Int
 
 
-matchFullDecay :: HM.HashMap ProcessIndex LHEvent -- ^ event repository 
+matchFullDecay :: ProcessMap LHEvent -- ^ event repository 
                -> ContextEvent ProcessIndex    -- ^ current context for mother
                -> DecayID ProcessIndex  
                -> Either String (DecayFull ProcessIndex)
@@ -75,21 +75,23 @@ matchFullDecay m ctxt elem@(MkD dnode ds) = do
   where momev = selfEvent ctxt
         olxfrm = absoluteContext ctxt
 
-{- 
+
 -- | 
-matchFullCross :: IM.IntMap LHEvent  -- ^ event repository 
-               -> CrossID 
-               -> Either String CrossFull
-matchFullCross m g@(GCross (XNode pid) inc out) =
-    case IM.lookup pid m of 
+matchFullCross :: ProcessMap LHEvent  -- ^ event repository 
+               -> CrossID ProcessIndex
+               -> Either String (CrossFull ProcessIndex)
+matchFullCross m g@(MkC pid (inc1,inc2) outs) =
+    case HM.lookup pid m of 
       Nothing -> Left $ show pid ++ " process doesn't exist"
       Just lhe -> do 
-        (mev :: MatchedLHEvent) <- matchPtl4Cross g lhe
+        mev <- runIdentity (matchX g lhe)
         let xcontext = CEvent (NL.ident 4) Nothing mev  
-        (mis :: [DecayFull]) <- mapM (matchFullDecay m xcontext) inc
-        (mos :: [DecayFull]) <- mapM (matchFullDecay m xcontext) out 
-        return (GCross (XNode xcontext) mis mos)
+        mi1 <- matchFullDecay m xcontext inc1
+        mi2 <- matchFullDecay m xcontext inc2 
+        mos <- mapM (matchFullDecay m xcontext) outs 
+        return (MkC xcontext (mi1,mi2) mos)
 
+{-
 -- | 
 adjustPtlInfosInMLHEvent :: (PtlInfo -> PtlInfo, (ParticleID,PtlInfo) -> PtlInfo) 
                          -> MatchedLHEvent 
