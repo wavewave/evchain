@@ -48,57 +48,88 @@ import           Prelude hiding (mapM,foldr)
 -- | 
 type Status = Int
 
+{-
+-- | 
+getProcessIndex :: ContextEvent ProcessIndex 
+                -> (ParticleID,PDGID) 
+                -> ProcessIndex
+getProcessIndex ctxt x = 
+    maybe [x] ((x:).fst) (relativeContext ctxt)
+-}
 
-matchFullDecay :: ContextEvent ProcessIndex    -- ^ current context for mother
-               -> DecayID ProcessIndex  
-               -> ErrorT String (State (ProcessMap [LHEvent])) (DecayFull ProcessIndex)
-matchFullDecay ctxt (MkT (ptl_id,pdg_ids)) = 
-    case pdg_ids of 
-      [pdg_id] -> return (MkT (ptl_id,pdg_id))
-      -- this is very bad but I do not have any solution.
-      _ -> return (MkT (ptl_id,0))   
-matchFullDecay ctxt elem@(MkD dnode ds) = do 
-    let ptl_id = ptl_ptlid dnode 
-    case ptl_procs dnode of 
-      [ProcPDG proc_id pdg_id] -> do 
-        mrprocid <- HM.lookup proc_id <$> lift get 
-        case mrprocid of -- HM.lookup proc_id <$> get of 
-          Nothing -> fail (show proc_id ++ " process doesn't exist")
-          Just (lhe:lhes) -> do 
-            let emev = runIdentity (matchD pdg_id elem lhe)
-            case emev of 
-              Left err -> fail err 
-              Right mev -> do 
-                let ptrip = findPTripletUsingPtlIDFrmOutPtls ptl_id momev 
-                    lxfrm = relLrntzXfrm ptrip momev
-                    momprocid = (mlhev_procinfo.selfEvent) ctxt 
-                let dctxt = CEvent (olxfrm NL.<> lxfrm) (Just (momprocid,ptrip)) mev
-                lift $ put . HM.adjust (const lhes) proc_id =<< get 
-                mds <- mapM (matchFullDecay dctxt) ds
-                return (MkD ((ptl_id,pdg_id),dctxt) mds)
-      _ -> fail "in matchFullDecay"   
-  where momev = selfEvent ctxt
-        olxfrm = absoluteContext ctxt
+-- | 
+getPDGID4ParticleID :: MatchedLHEventProcess p -> ParticleID -> Maybe PDGID
+getPDGID4ParticleID ctxt ptl_id  
+    | (not.null) filtered_in = Just . idup . snd . head $ filtered_in
+    | (not.null) filtered_out = Just . idup . snd .  head $ filtered_out
+    | otherwise = Nothing 
+  where idtuple = (,) <$> either id fst . fst <*> snd  
+        lst_in  = map idtuple . mlhev_incoming $ ctxt
+        lst_out = map idtuple . mlhev_outgoing $ ctxt
+        checkid = (== ptl_id) <$> fst
+        filtered_in = filter checkid lst_in
+        filtered_out = filter checkid lst_out
+
+-- | 
+chainProcIdx :: (Monad m) => 
+                ProcessIndex 
+             -> MatchedLHEventProcess p' 
+             -> DecayID p 
+             -> ErrorT String m ProcessIndex 
+chainProcIdx pidx mev dcy  = do
+    let ptl_id = foremostParticleID dcy
+    case getPDGID4ParticleID mev ptl_id of 
+      Nothing -> throwError "ParticleID not matched"
+      Just pdg_id -> return ((ptl_id,pdg_id):pidx)
 
 
 -- | 
-matchFullCross :: CrossID ProcessIndex
-               -> ErrorT String (State (ProcessMap [LHEvent])) (CrossFull ProcessIndex)
-matchFullCross g@(MkC pid (inc1,inc2) outs) = do 
-    mrpid <- HM.lookup pid <$> lift get 
-    case mrpid of 
-      Nothing -> fail $ show pid ++ " process doesn't exist"
+matchFullDecay :: (Show p) =>
+                  ContextEvent ProcessIndex    -- ^ current context for mother
+               -> DecayID p 
+               -> ProcessIndex  
+               -> ErrorT String (State (ProcessMap [LHEvent])) (DecayFull ProcessIndex)
+matchFullDecay ctxt (MkT _) ((iptl,ipdg):_) = return (MkT (iptl,ipdg))
+matchFullDecay ctxt elem@(MkD dnode ds) pidx@((iptl,ipdg):_) = do 
+    mevents <- HM.lookup pidx <$> lift get 
+    case mevents of
+      Nothing -> throwError (show pidx ++ " process doesn't exist")
+      Just [] -> throwError (show pidx ++ " process has no more events")
       Just (lhe:lhes) -> do 
-        let emev = runIdentity (matchX g lhe)
-        case emev of 
-          Left err -> fail err  
-          Right mev -> do 
-            lift $ put . HM.adjust (const lhes) pid =<< get           
-            let xcontext = CEvent (NL.ident 4) Nothing mev  
-            mi1 <- matchFullDecay xcontext inc1
-            mi2 <- matchFullDecay xcontext inc2 
-            mos <- mapM (matchFullDecay xcontext) outs 
-            return (MkC xcontext (mi1,mi2) mos)
+        mev0 <- (ErrorT . return . runIdentity) (matchD ipdg elem lhe)
+        let mev = unMkMLHEPF . fmap (const pidx) . MkMLHEPF $ mev0 
+            ptrip = findPTripletUsingPtlIDFrmOutPtls iptl momev 
+            lxfrm = relLrntzXfrm ptrip momev
+            momprocid = (mlhev_procinfo.selfEvent) ctxt 
+            dctxt = CEvent (olxfrm NL.<> lxfrm) (Just (momprocid,ptrip)) mev
+        modify (HM.adjust (const lhes) pidx) 
+        mds <- mapM (\x->matchFullDecay dctxt x =<< chainProcIdx pidx mev x) ds
+        return (MkD ((iptl,ipdg),dctxt) mds)
+  where momev = selfEvent ctxt
+        olxfrm = absoluteContext ctxt
+
+-- | 
+matchFullCross :: (Show p) => 
+                  CrossID p 
+               -> ErrorT String (State (ProcessMap [LHEvent])) 
+                         (CrossFull ProcessIndex)
+matchFullCross g@(MkC _ (inc1,inc2) outs) = do 
+    mevents <- HM.lookup [] <$> get
+    case mevents of 
+      Nothing -> fail "root process doesn't exist"
+      Just [] -> fail "no more root events"
+      Just (lhe:lhes) -> do 
+        mev0 <- (ErrorT . return . runIdentity) (matchX g lhe)
+        let mev = unMkMLHEPF . fmap (const []) . MkMLHEPF $ mev0
+        modify (HM.adjust (const lhes) [])           
+        let xcontext = CEvent (NL.ident 4) Nothing mev  
+        mi1 <- matchFullDecay xcontext inc1 =<< chainProcIdx [] mev inc1 
+        mi2 <- matchFullDecay xcontext inc2 =<< chainProcIdx [] mev inc2
+        mos <- mapM (\x -> matchFullDecay xcontext x =<< chainProcIdx [] mev x) outs 
+        return (MkC xcontext (mi1,mi2) mos)
+
+
+
 
 {-
 -- | 

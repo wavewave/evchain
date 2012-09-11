@@ -43,29 +43,18 @@ type ProcSpecMap = HM.HashMap ProcSpecIdx ProcessInfo
 -- | 
 type ProcessMap a = HM.HashMap ProcessIndex a
 
--- type GeneratorM m = StateT ProcessTable m 
 
 -- | process id for identifying LHE files
-
 type ProcessID = Int
 
 -- | Process Info  
-
 type ProcessInfo = String 
 
 -- | 
-
-
-
--- | 
-
 mkPMIdx :: ProcSmplIdx -> PDGID -> ProcSpecIdx 
 mkPMIdx [] _ = error "cannot have this case."
 mkPMIdx (i:is) pdgid' = Just (i,pdgid',is)
 
--- | 
-
--- mkDecayIDProc :: Pro
 
 
 

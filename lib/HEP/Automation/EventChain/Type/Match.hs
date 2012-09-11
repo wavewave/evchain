@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables, StandaloneDeriving #-}
+{-# LANGUAGE ScopedTypeVariables, StandaloneDeriving, RecordWildCards #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -17,6 +17,7 @@
 module HEP.Automation.EventChain.Type.Match where
 
 -- from other packages from others 
+import           Control.Applicative
 import           Control.Monad.Error
 import           Control.Monad.State
 import qualified Data.Map as M
@@ -43,14 +44,16 @@ data MatchInOut p =
 
 -- | data type for a single LHE event matched with a specified process node 
 data MatchedLHEvent p tnode dnode = 
-         MLHEvent { mlhev_procinfo :: p, 
-                    mlhev_orig :: LHEvent 
+         MLHEvent { mlhev_procinfo :: p
+                  , mlhev_orig :: LHEvent 
                   , mlhev_einfo :: EventInfo
                   , mlhev_incoming :: [(Either tnode dnode, PtlInfo)]
                   , mlhev_outgoing :: [(Either tnode dnode, PtlInfo)]
                   , mlhev_intermediate :: [PtlInfo] } 
 
-deriving instance (Show p, Show tnode, Show dnode) => Show (MatchedLHEvent p tnode dnode)
+
+deriving instance (Show p, Show tnode, Show dnode) 
+         => Show (MatchedLHEvent p tnode dnode)
 
 -- -- | default type for MatchedLHEvent 
 
@@ -61,6 +64,21 @@ getPInfos (LHEvent _ pinfos) = pinfos
 
 -- | MatchedLHEvent with Decay structure 
 type MatchedLHEventProcess p = MatchedLHEvent p ParticleID (ParticleID,p) 
+
+
+-- | 
+newtype MatchedLHEventProcessF p = 
+    MkMLHEPF { unMkMLHEPF :: MatchedLHEventProcess p} 
+
+instance Functor MatchedLHEventProcessF where
+  fmap f (MkMLHEPF MLHEvent {..}) = 
+    MkMLHEPF (MLHEvent (f mlhev_procinfo) mlhev_orig mlhev_einfo
+                           (map (fmap' f) mlhev_incoming)
+                           (map (fmap' f) mlhev_outgoing)
+                           mlhev_intermediate )
+    where fmap' f (Left x,y) = (Left x,y)
+          fmap' f (Right (x,p),y) = (Right (x,f p),y)
+
 
 
 -- | 
@@ -76,6 +94,18 @@ data ContextEvent p =
     , selfEvent :: MatchedLHEventProcess p }
 
 
+instance Functor ContextEvent where 
+  fmap f CEvent {..} = 
+      let rel' = case relativeContext of 
+                   Nothing -> Nothing 
+                   Just (p,trip) -> Just (f p, trip) 
+          self' = unMkMLHEPF . fmap f . MkMLHEPF $ selfEvent
+      in CEvent absoluteContext rel' self'
+
+-- :: Either ParticleID (ParticleID,p) -> Either ParticleID (ParticleID,f p)
+           
+
+ 
 -- | full decay info
 type DecayFull p = Decay ((ParticleID,PDGID),ContextEvent p) (ParticleID,PDGID) 
 

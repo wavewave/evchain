@@ -72,6 +72,8 @@ type DICross = Cross () (ParticleID,[PDGID]) (ParticleID,[PDGID])
 -- | 
 type DIDecay = Decay (ParticleID,[PDGID]) (ParticleID,[PDGID]) 
 
+
+
 -- | 
 data ProcInfoPtlIDs p = PrInfoID { prinfoid_proc :: p 
                                  , prinfoid_ptlid :: ParticleID
@@ -113,6 +115,11 @@ type CrossID p = Cross p (PtlProcPDG p) (ParticleID,[PDGID])
 -- | type for decay process with only ids
 type DecayID p = Decay (PtlProcPDG p) (ParticleID,[PDGID])
 
+
+-- | 
+foremostParticleID :: DecayID p -> ParticleID 
+foremostParticleID MkD {..} = ptl_ptlid dnode
+foremostParticleID MkT {..} = fst tnode 
 
 
 -- |

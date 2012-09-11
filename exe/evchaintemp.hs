@@ -71,13 +71,17 @@ pmap2 = HM.fromList [(Nothing,"\ngenerate P P > t b~ QED=99\nadd process P P > t
                     ] 
 -}
 
-
+spec3_tbbar :: DCross  
 spec3_tbbar = x (t proton,t proton, [spec3_topdecay, t [5,-5]]) 
+
+spec3_topdecay :: DDecay 
 spec3_topdecay = d ([6,-6], [spec3_wdecay, t [5,-5]] ) 
 -- spec2_antitopdecay = d ([-6], [-24,-5])
 
+spec3_wdecay :: DDecay 
 spec3_wdecay = d ([24,-24], [t [11,-11], t [12,-12]])
 
+spec3_tbbar_idx :: CrossID ProcSmplIdx
 spec3_tbbar_idx = mkCrossIDIdx (mkDICross spec3_tbbar )
 
 
@@ -104,17 +108,16 @@ makeLHEProcessMap :: ProcessMap FilePath -> IO (ProcessMap [LHEvent])
 makeLHEProcessMap = T.mapM getLHEvents 
 
 
+-- | 
 main :: IO () 
 main = do 
   print spec3_tbbar_idx
-
   rm <- createProcessX (generateX pmap3) (generateD pmap3) 
           lheCntX lheCntD spec3_tbbar_idx 100 
   print rm 
   -- let lst = HM.elems rm
   --     fn = head lst 
   rm2 <- makeLHEProcessMap rm 
-
   print (HM.map length rm2)
 
 

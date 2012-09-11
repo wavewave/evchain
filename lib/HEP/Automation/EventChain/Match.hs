@@ -30,12 +30,10 @@ import           HEP.Automation.EventChain.Type.Skeleton
 import           HEP.Automation.EventChain.Type.Spec
 
 -- | msum for supporting custom error message 
-
 msum' :: (Monad m) => String -> [MatchM m a] -> MatchM m a 
 msum' msg = foldr mplus (ErrorT (return (Left msg)))
 
 -- | match a single particle with PDGID with incoming/outgoing status 
-
 match1 :: (Functor m, Monad m) => InOutDir -> PDGID -> MatchM m PtlInfo
 match1 dir pdgid = do 
     (pinfos1,pinfos2) <- return . break (f . ((,) <$> idup <*> istup)) =<< lift get 
@@ -48,19 +46,16 @@ match1 dir pdgid = do
                                Out -> st == statusOut
 
 -- | 
-
 matchOr :: (Functor m, Monad m, Show a) => String -> (a -> MatchM m b) -> [a] -> MatchM m b 
 matchOr msg m xs = msum' (msg ++ ": no match in matchOr with " ++ show xs) (map m xs)
 
 -- |
-
 actT :: (Functor m, Monad m) => InOutDir -> (ParticleID,[PDGID]) -> MatchM m (ParticleID,PtlInfo) 
 actT dir (pid,ids) = (pid,) <$> matchOr "actT" (match1 dir) ids
 
 --  msum' "no match in actT" (map (match1 dir) ids)
 
 -- |
-
 actD :: (Functor m, Monad m, Show p) => InOutDir -> PtlProcPDG p -> MatchM m (ParticleID,(p,PtlInfo))
 actD dir PtlProcPDG {..} = (ptl_ptlid,) <$> matchOr "actD" m ptl_procs
   where m proc = (proc_procid proc,) <$> match1 dir (proc_pdgid proc) 
@@ -69,14 +64,12 @@ actD dir PtlProcPDG {..} = (ptl_ptlid,) <$> matchOr "actD" m ptl_procs
 -- msum' "no match in actD" (map m ptl_procs)
 
 -- |
-
 checkD :: (Functor m, Monad m, Show p) => InOutDir -> DecayID p 
      -> MatchM m (Either (ParticleID,PtlInfo) (ParticleID,(p,PtlInfo)))
 checkD dir MkT {..} = Left <$> actT dir tnode 
 checkD dir MkD {..} = Right <$> actD dir dnode
 
 -- | 
-
 getX :: (Functor m, Monad m, Show p) => 
         (DecayID p, DecayID p, [DecayID p]) 
      -> MatchM m (MatchInOut p)
@@ -87,7 +80,6 @@ getX (in1,in2,outs) = do in1' <- checkD In in1
                          return (MIO [in1',in2'] outs' rs)
 
 -- | 
-
 getMatchedLHEvent :: (Show p) => 
                      p -> LHEvent -> MatchInOut p -> MatchedLHEventProcess p
 getMatchedLHEvent p ev@(LHEvent einfo _pinfos) (MIO ins outs rs) = 
@@ -100,7 +92,6 @@ getMatchedLHEvent p ev@(LHEvent einfo _pinfos) (MIO ins outs rs) =
         dnodef (pid,(prcid,pinfo)) = (Right (pid,prcid), pinfo)
 
 -- | 
-
 matchX :: (Functor m, Monad m, Show p) => 
           CrossID p  
        -> LHEvent 
@@ -111,7 +102,6 @@ matchX (MkC {..}) ev@(LHEvent _einfo pinfos) = evalStateT (runErrorT m) pinfos
                return (getMatchedLHEvent xnode ev mio)
 
 -- | 
-
 matchD :: (Functor m, Monad m, Show p) => PDGID -> DecayID p -> LHEvent 
        -> m (Either String (MatchedLHEventProcess p))
 matchD _ (MkT {..}) _ = return (Left "cannot match a process with terminal node")
