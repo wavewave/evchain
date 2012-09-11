@@ -21,9 +21,9 @@ import           Control.Monad.Identity (runIdentity)
 import           Control.Monad.State hiding (mapM)
 import           Data.Either
 import           Data.Foldable (foldr,foldrM)
--- import           Data.Function (on)
+import           Data.Function (on)
 import qualified Data.HashMap.Lazy as HM 
--- import qualified Data.IntMap as IM
+import qualified Data.IntMap as IM
 import           Data.List (intercalate, sortBy)
 import qualified Data.Map as M
 import           Data.Traversable 
@@ -109,15 +109,16 @@ adjustPtlInfosInMLHEvent (f,g) mev mm = (map snd inc,map snd out,int,mm'')
         stripping =   ( (,) <$> fst <*> f . g )
                     . ( (,) <$> either id fst . fst <*> snd )
 
-{-
+
 -- | 
-accumTotalEvent :: CrossFull -> IO [PtlInfo]
-accumTotalEvent g = do (_,_,result,_) <- execStateT (traverse action g) 
-                                                    (0,0, IM.empty :: IM.IntMap PtlInfo
-                                                        , M.empty :: ParticleCoordMap ) 
-                       let result' = IM.elems result
-                       let sortedResult = sortBy (compare `on` ptlid) result'
-                       return sortedResult 
+accumTotalEvent :: CrossFull ProcessIndex -> IO [PtlInfo]
+accumTotalEvent g = do 
+    (_,_,result,_) <- execStateT (traverse action . CrossF $ g) 
+                                 (0,0, IM.empty :: IM.IntMap PtlInfo
+                                 , M.empty :: ParticleCoordMap ) 
+    let result' = IM.elems result
+    let sortedResult = sortBy (compare `on` ptlid) result'
+    return sortedResult 
   where action cev = do 
           let (lrot,mmom,mev) = (absoluteContext cev, relativeContext cev, selfEvent cev)
               pinfos = (getPInfos . mlhev_orig) mev
@@ -153,18 +154,20 @@ accumTotalEvent g = do (_,_,result,_) <- execStateT (traverse action g)
               rmap4 = insertAll krm rmap3 
           put (stid+maxid-1,stcol+maxicol-minicol+1-coloffset,rmap4,stmm')
 
+
 -- | 
 motherAdjustID :: (PtlID,PtlID) -> PtlInfo -> PtlInfo
 motherAdjustID (oid,nid) = idAdj (\y -> if y == oid then nid else y)
 
+{-
 -- | 
 extractIDsFromMLHE :: MatchedLHEvent -> ([(ParticleID,PtlID)],[(ParticleID,PtlID)])
 extractIDsFromMLHE mlhe = 
   ( map (\x->(fst x, ptlid (snd x))) (mlhev_incoming mlhe)
   , map (\x->(fst x, ptlid (snd x))) (mlhev_outgoing mlhe) )
-
-
 -}
+
+
 
 
 --------------
