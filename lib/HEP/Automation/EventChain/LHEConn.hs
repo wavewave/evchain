@@ -17,6 +17,7 @@
 module HEP.Automation.EventChain.LHEConn where 
 -- other package of others
 import           Control.Applicative ((<$>),(<*>))
+import           Control.Monad.Error hiding (mapM)
 import           Control.Monad.Identity (runIdentity)
 import           Control.Monad.State hiding (mapM)
 import           Data.Either
@@ -48,50 +49,58 @@ import           Prelude hiding (mapM,foldr)
 type Status = Int
 
 
-matchFullDecay :: ProcessMap LHEvent -- ^ event repository 
-               -> ContextEvent ProcessIndex    -- ^ current context for mother
+matchFullDecay :: ContextEvent ProcessIndex    -- ^ current context for mother
                -> DecayID ProcessIndex  
-               -> Either String (DecayFull ProcessIndex)
-matchFullDecay m ctxt (MkT (ptl_id,pdg_ids)) = 
+               -> ErrorT String (State (ProcessMap [LHEvent])) (DecayFull ProcessIndex)
+matchFullDecay ctxt (MkT (ptl_id,pdg_ids)) = 
     case pdg_ids of 
       [pdg_id] -> return (MkT (ptl_id,pdg_id))
       -- this is very bad but I do not have any solution.
       _ -> return (MkT (ptl_id,0))   
-matchFullDecay m ctxt elem@(MkD dnode ds) = do 
+matchFullDecay ctxt elem@(MkD dnode ds) = do 
     let ptl_id = ptl_ptlid dnode 
     case ptl_procs dnode of 
-      [ProcPDG proc_id pdg_id] -> 
-        case HM.lookup proc_id m of 
-          Nothing -> Left $ show proc_id ++ " process doesn't exist"
-          Just lhe -> do 
-            mev <- runIdentity (matchD pdg_id elem lhe)
-            let ptrip = findPTripletUsingPtlIDFrmOutPtls ptl_id momev 
-                lxfrm = relLrntzXfrm ptrip momev
-                momprocid = (mlhev_procinfo.selfEvent) ctxt 
-            let dctxt = CEvent (olxfrm NL.<> lxfrm) (Just (momprocid,ptrip)) mev
-            mds <- mapM (matchFullDecay m dctxt) ds
-            return (MkD ((ptl_id,pdg_id),dctxt) mds)
-      _ -> error "in matchFullDecay"   
+      [ProcPDG proc_id pdg_id] -> do 
+        mrprocid <- HM.lookup proc_id <$> lift get 
+        case mrprocid of -- HM.lookup proc_id <$> get of 
+          Nothing -> fail (show proc_id ++ " process doesn't exist")
+          Just (lhe:lhes) -> do 
+            let emev = runIdentity (matchD pdg_id elem lhe)
+            case emev of 
+              Left err -> fail err 
+              Right mev -> do 
+                let ptrip = findPTripletUsingPtlIDFrmOutPtls ptl_id momev 
+                    lxfrm = relLrntzXfrm ptrip momev
+                    momprocid = (mlhev_procinfo.selfEvent) ctxt 
+                let dctxt = CEvent (olxfrm NL.<> lxfrm) (Just (momprocid,ptrip)) mev
+                lift $ put . HM.adjust (const lhes) proc_id =<< get 
+                mds <- mapM (matchFullDecay dctxt) ds
+                return (MkD ((ptl_id,pdg_id),dctxt) mds)
+      _ -> fail "in matchFullDecay"   
   where momev = selfEvent ctxt
         olxfrm = absoluteContext ctxt
 
 
 -- | 
-matchFullCross :: ProcessMap LHEvent  -- ^ event repository 
-               -> CrossID ProcessIndex
-               -> Either String (CrossFull ProcessIndex)
-matchFullCross m g@(MkC pid (inc1,inc2) outs) =
-    case HM.lookup pid m of 
-      Nothing -> Left $ show pid ++ " process doesn't exist"
-      Just lhe -> do 
-        mev <- runIdentity (matchX g lhe)
-        let xcontext = CEvent (NL.ident 4) Nothing mev  
-        mi1 <- matchFullDecay m xcontext inc1
-        mi2 <- matchFullDecay m xcontext inc2 
-        mos <- mapM (matchFullDecay m xcontext) outs 
-        return (MkC xcontext (mi1,mi2) mos)
+matchFullCross :: CrossID ProcessIndex
+               -> ErrorT String (State (ProcessMap [LHEvent])) (CrossFull ProcessIndex)
+matchFullCross g@(MkC pid (inc1,inc2) outs) = do 
+    mrpid <- HM.lookup pid <$> lift get 
+    case mrpid of 
+      Nothing -> fail $ show pid ++ " process doesn't exist"
+      Just (lhe:lhes) -> do 
+        let emev = runIdentity (matchX g lhe)
+        case emev of 
+          Left err -> fail err  
+          Right mev -> do 
+            lift $ put . HM.adjust (const lhes) pid =<< get           
+            let xcontext = CEvent (NL.ident 4) Nothing mev  
+            mi1 <- matchFullDecay xcontext inc1
+            mi2 <- matchFullDecay xcontext inc2 
+            mos <- mapM (matchFullDecay xcontext) outs 
+            return (MkC xcontext (mi1,mi2) mos)
 
-
+{-
 -- | 
 adjustPtlInfosInMLHEvent :: ( PtlInfo -> PtlInfo
                             , (ParticleID,PtlInfo) -> PtlInfo) 
@@ -159,6 +168,15 @@ accumTotalEvent g = do
 motherAdjustID :: (PtlID,PtlID) -> PtlInfo -> PtlInfo
 motherAdjustID (oid,nid) = idAdj (\y -> if y == oid then nid else y)
 
+-}
+
+
+
+--------------
+-- obsolete functions 
+----------------
+
+
 {-
 -- | 
 extractIDsFromMLHE :: MatchedLHEvent -> ([(ParticleID,PtlID)],[(ParticleID,PtlID)])
@@ -168,11 +186,6 @@ extractIDsFromMLHE mlhe =
 -}
 
 
-
-
---------------
--- obsolete functions 
-----------------
 
 
 {-

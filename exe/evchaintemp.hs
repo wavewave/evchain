@@ -3,8 +3,16 @@
 module Main where
 
 import           Control.Monad 
+import           Data.Conduit
+import qualified Data.Conduit.List as CL
+import qualified Data.Traversable as T
 import qualified Data.HashMap.Lazy as HM
-
+import           Data.Maybe 
+import           System.IO
+-- 
+import HEP.Parser.LHEParser.Type
+-- 
+import HEP.Automation.EventChain.FileDriver
 import HEP.Automation.EventChain.Type.Skeleton
 import HEP.Automation.EventChain.Type.Spec
 import HEP.Automation.EventChain.Type.Process
@@ -82,14 +90,32 @@ pmap3 = HM.fromList [(Nothing,"\ngenerate P P > t b~ QED=99\nadd process P P > t
                     ] 
 
 
+-- | 
+getLHEvents :: FilePath -> IO [LHEvent] 
+getLHEvents fn = do 
+  h <- openFile fn ReadMode 
+  evts <- evtsHandle True h =$= CL.map fromJust $$ CL.consume 
+  return evts 
 
+
+
+-- | 
+makeLHEProcessMap :: ProcessMap FilePath -> IO (ProcessMap [LHEvent])
+makeLHEProcessMap = T.mapM getLHEvents 
+
+
+main :: IO () 
 main = do 
   print spec3_tbbar_idx
 
   rm <- createProcessX (generateX pmap3) (generateD pmap3) 
           lheCntX lheCntD spec3_tbbar_idx 100 
   print rm 
-  -- print (HM.map (length.events) rm)
+  -- let lst = HM.elems rm
+  --     fn = head lst 
+  rm2 <- makeLHEProcessMap rm 
+
+  print (HM.map length rm2)
 
 
 

@@ -202,20 +202,18 @@ cnt1EvtD i decay (Counter incomingm outgoingm) ev@LHEvent {..} = do
 
 
 -- | 
-
 generateX :: ProcSpecMap -> CrossID ProcSmplIdx -> Int -> IO FilePath  
 generateX pm MkC {..} n = do 
     case HM.lookup Nothing pm of 
       Nothing -> fail "what? no root process in map?"
       Just str -> do 
-        let nwname = "Test"++ show (hash (str,[] :: ProcSmplIdx))  
+        let nwname = "Test"++ show (hash (str,[] :: ProcSmplIdx)) 
         print nwname 
         r <- work str nwname n 
         threadDelay 1000000
         return r 
 
 -- | Single PDGID in dnode is assumed. 
-
 generateD :: ProcSpecMap -> DecayID ProcSmplIdx -> Int -> IO FilePath
 generateD pm MkD {..} n = do 
     let psidx = (proc_procid . head . ptl_procs) dnode 
