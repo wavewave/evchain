@@ -129,9 +129,6 @@ matchFullCross g@(MkC _ (inc1,inc2) outs) = do
         return (MkC xcontext (mi1,mi2) mos)
 
 
-
-
-{-
 -- | 
 adjustPtlInfosInMLHEvent :: ( PtlInfo -> PtlInfo
                             , (ParticleID,PtlInfo) -> PtlInfo) 
@@ -199,7 +196,7 @@ accumTotalEvent g = do
 motherAdjustID :: (PtlID,PtlID) -> PtlInfo -> PtlInfo
 motherAdjustID (oid,nid) = idAdj (\y -> if y == oid then nid else y)
 
--}
+
 
 
 

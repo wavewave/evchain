@@ -29,8 +29,8 @@ Test-suite test-evchain
                    webdav-manager == 0.1.*,
                    evchain
 
-Executable evchaintemp
-  Main-is: evchaintemp.hs
+Executable evchain
+  Main-is: evchain.hs
   hs-source-dirs: exe
   ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
   ghc-prof-options: -caf-all -auto-all

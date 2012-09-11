@@ -50,7 +50,7 @@ data MatchedLHEvent p tnode dnode =
                   , mlhev_incoming :: [(Either tnode dnode, PtlInfo)]
                   , mlhev_outgoing :: [(Either tnode dnode, PtlInfo)]
                   , mlhev_intermediate :: [PtlInfo] } 
-
+         
 
 deriving instance (Show p, Show tnode, Show dnode) 
          => Show (MatchedLHEvent p tnode dnode)
@@ -85,6 +85,7 @@ instance Functor MatchedLHEventProcessF where
 data PTriplet = PTriplet { pt_pid :: ParticleID
                          , pt_pdgid :: PDGID
                          , pt_pinfo :: PtlInfo } 
+              deriving Show 
 
 -- | data type for event and context for a node 
 data ContextEvent p = 
@@ -92,6 +93,8 @@ data ContextEvent p =
     { absoluteContext :: LorentzRotation -- ^ relative to cross frame 
     , relativeContext :: Maybe (p, PTriplet) -- ^ relative to mother 
     , selfEvent :: MatchedLHEventProcess p }
+
+deriving instance (Show p) => Show (ContextEvent p)
 
 
 instance Functor ContextEvent where 
