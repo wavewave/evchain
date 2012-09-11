@@ -17,6 +17,7 @@
 module HEP.Automation.EventChain.Process.Generator where
 
 -- from other packages from others
+import           Control.Applicative 
 import           Control.Concurrent (threadDelay)
 import           Control.Monad.Reader 
 import           Control.Monad.Error
@@ -31,7 +32,7 @@ import           System.FilePath
 import           System.IO
 -- from hep-platform packages 
 import           HEP.Automation.MadGraph.Model
-import           HEP.Automation.MadGraph.Model.SM
+import           HEP.Automation.MadGraph.Model.ADMXUDD
 import           HEP.Automation.MadGraph.Machine
 import           HEP.Automation.MadGraph.SetupType
 import           HEP.Automation.MadGraph.UserCut
@@ -47,31 +48,36 @@ import           HEP.Automation.EventChain.Type.Match
 import           HEP.Automation.EventChain.Type.Process
 import           HEP.Automation.EventChain.Type.Skeleton
 import           HEP.Automation.EventChain.Type.Spec 
+-- 
+import qualified Paths_madgraph_auto as PMadGraph 
+import qualified Paths_madgraph_auto_model as PModel 
 
+-- |  
+getScriptSetup :: IO ScriptSetup
+getScriptSetup = do 
+  mdldir <- (</> "template") <$> PModel.getDataDir
+  rundir <- (</> "template") <$> PMadGraph.getDataDir 
+  return $ 
+    SS { modeltmpldir = mdldir -- "/home/wavewave/repo/src/madgraph-auto-model/template/"
+       , runtmpldir = rundir -- "/home/wavewave/repo/src/madgraph-auto/template"
+       , sandboxdir = "/home/wavewave/repo/workspace/montecarlo/working"
+       , mg5base    = "/home/wavewave/repo/ext/MadGraph5_v1_4_8_4/"
+       , mcrundir   = "/home/wavewave/repo/workspace/montecarlo/mc/"
+       }
 
-------- 
-scriptsetup :: ScriptSetup
-scriptsetup = SS {
-    templatedir = "/Users/wavewave/repo/src/pipeline/template/"
-  , workingdir = "/Users/wavewave/repo/workspace/montecarlo/work/"
-  , mg5base    = "/Users/wavewave/repo/workspace/montecarlo/MadGraph5_v1_3_33/"
-  , workbase   = "/Users/wavewave/repo/workspace/montecarlo/mc/"
-  }
+-- | 
+processSetup :: String -> String -> ProcessSetup ADMXUDD
+processSetup pname wname = PS { model = ADMXUDD
+                              , process = pname 
+                              , processBrief = "multijet" 
+                              , workname = wname 
+                              }
 
+-- |
+pset :: ModelParam ADMXUDD
+pset = ADMXUDDParam 750 1500 100 
 
-
-processSetup :: String -> String -> ProcessSetup SM
-processSetup pname wname = PS {  
-    model = SM
-  , process = pname 
-  , processBrief = "TTBar" 
-  , workname   = wname 
-  }
-
-pset :: ModelParam SM
-pset = SMParam
-
-
+-- | 
 ucut :: UserCut 
 ucut = UserCut { 
     uc_metcut = 15.0
@@ -81,31 +87,55 @@ ucut = UserCut {
   , uc_etcutjet = 15.0 
 }
 
-rsetup :: Int -> RunSetup SM 
-rsetup n = RS { param = SMParam 
-              , numevent = n 
-              , machine = TeVatron
-              , rgrun   = Fixed
-              , rgscale = 200.0
-              , match   = NoMatch
-              , cut     = NoCut 
-              , pythia  = NoPYTHIA
-              , usercut = NoUserCutDef 
-              , lhesanitizer = NoLHESanitize 
-              , pgs     = NoPGS
-              , jetalgo = Cone 0.4
-              , uploadhep = NoUploadHEP
-              , setnum  = 1
-              }
 
-wsetup :: String -> String -> Int -> WorkSetup SM 
-wsetup str wname n 
-  = WS scriptsetup (processSetup str wname) (rsetup n) 
-       (CS NoParallel) (WebDAVRemoteDir "")
+-- | 
+getRSetup :: Int -> RunSetup ADMXUDD 
+getRSetup n = RS { param = pset
+                 , numevent = n
+                 , machine = LHC7 ATLAS
+                 , rgrun   = Fixed
+                 , rgscale = 200.0
+                 , match   = NoMatch
+                 , cut     = NoCut 
+                 , pythia  = NoPYTHIA
+                 , usercut = NoUserCutDef 
+                 , lhesanitizer = NoLHESanitize 
+                 , pgs     = NoPGS
+                 , jetalgo = Cone 0.4
+                 , uploadhep = NoUploadHEP
+                 , setnum  = 1
+                 }
+
+-- | 
+getWSetup :: String -> String -> Int -> IO (WorkSetup ADMXUDD)
+getWSetup str wname n = 
+    WS <$> getScriptSetup 
+       <*> pure (processSetup str wname)  
+       <*> pure (getRSetup n) 
+       <*> pure (CS NoParallel) 
+       <*> pure (WebDAVRemoteDir "")
 
 
+-- | 
+work :: String -> String -> Int -> IO String 
+work str wname n  = do 
+    putStrLn "models : admxudd "
+    wsetup <- getWSetup str wname n  
+    r <- flip runReaderT wsetup . runErrorT $ do 
+           WS ssetup psetup rsetup _ _ <- ask 
+           createWorkDir ssetup psetup
+           cardPrepare                      
+           generateEvents   
+           let taskname = makeRunName psetup rsetup  
+           wdir <- getWorkDir 
+           let fname = wdir </> "Events" </> taskname ++ "_unweighted_events.lhe.gz"
+           return fname 
+    case r of 
+        Left msg -> error msg 
+        Right str -> return str 
 
 
+{-
 work :: String -> String -> Int -> IO String 
 work str wname n  = do 
     putStrLn "models : sm "
@@ -121,7 +151,7 @@ work str wname n  = do
     case r of 
         Left msg -> error msg 
         Right str -> return str 
-
+-}
 
 -- | 
 
