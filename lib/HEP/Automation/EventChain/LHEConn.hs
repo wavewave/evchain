@@ -91,22 +91,25 @@ matchFullCross m g@(MkC pid (inc1,inc2) outs) =
         mos <- mapM (matchFullDecay m xcontext) outs 
         return (MkC xcontext (mi1,mi2) mos)
 
-{-
+
 -- | 
-adjustPtlInfosInMLHEvent :: (PtlInfo -> PtlInfo, (ParticleID,PtlInfo) -> PtlInfo) 
-                         -> MatchedLHEvent 
+adjustPtlInfosInMLHEvent :: ( PtlInfo -> PtlInfo
+                            , (ParticleID,PtlInfo) -> PtlInfo) 
+                         -> MatchedLHEventProcess ProcessIndex 
                          -> ParticleCoordMap 
                          -> ([PtlInfo],[PtlInfo],[PtlInfo],ParticleCoordMap)
 adjustPtlInfosInMLHEvent (f,g) mev mm = (map snd inc,map snd out,int,mm'')
-  where procid = mlhev_procid mev
-        inc = map ((,) <$> fst <*> (f.g)) (mlhev_incoming mev)
-        out = map ((,) <$> fst <*> (f.g)) (mlhev_outgoing mev)
+  where procid = mlhev_procinfo mev
+        inc = map stripping (mlhev_incoming mev)
+        out = map stripping (mlhev_outgoing mev)
         int = map f (mlhev_intermediate mev)
         insfunc x m = M.insert (procid,fst x) ((ptlid.snd) x) m
         mm' = foldr insfunc mm inc
         mm'' = foldr insfunc mm' out
+        stripping =   ( (,) <$> fst <*> f . g )
+                    . ( (,) <$> either id fst . fst <*> snd )
 
-
+{-
 -- | 
 accumTotalEvent :: CrossFull -> IO [PtlInfo]
 accumTotalEvent g = do (_,_,result,_) <- execStateT (traverse action g) 

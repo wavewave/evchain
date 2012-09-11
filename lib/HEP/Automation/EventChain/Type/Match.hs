@@ -21,9 +21,10 @@ import           Control.Monad.Error
 import           Control.Monad.State
 import qualified Data.Map as M
 -- from other hep-platform package
-import           HEP.Parser.LHEParser.Type (PtlInfo,PDGID,LHEvent,EventInfo)
+import           HEP.Parser.LHEParser.Type (PtlInfo,PtlID,PDGID,LHEvent,EventInfo)
 import           HEP.Util.Functions
 -- from this package
+import           HEP.Automation.EventChain.Type.Process
 import           HEP.Automation.EventChain.Type.Skeleton
 import           HEP.Automation.EventChain.Type.Spec
 
@@ -82,14 +83,12 @@ type CrossFull p = Cross (ContextEvent p)
 
 
 
-{-
--- | coordinate for a particle in a given collection of processes 
 
-type ParticleCoord = (ProcessID,ParticleID)
+-- | coordinate for a particle in a given collection of processes 
+type ParticleCoord = (ProcessIndex,ParticleID)
 
 -- | coord storage for particles  
-
 type ParticleCoordMap = M.Map ParticleCoord PtlID 
--}
+
 
 
