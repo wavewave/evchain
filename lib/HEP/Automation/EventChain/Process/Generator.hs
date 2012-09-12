@@ -131,6 +131,7 @@ work (dir_sb,dir_mg5,dir_mc) pset str wname n  = do
     r <- flip runReaderT wsetup . runErrorT $ do 
            WS ssetup psetup rsetup _ _ <- ask 
            createWorkDir ssetup psetup
+           liftIO $ threadDelay 1000000 
            cardPrepare                      
            generateEvents   
            let taskname = makeRunName psetup rsetup  
