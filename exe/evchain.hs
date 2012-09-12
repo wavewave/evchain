@@ -130,7 +130,7 @@ map_multijet =
 
 
 main :: IO () 
-main = evchainGen map_multijet p_multijet 100
+main = putStrLn "dummy" -- evchainGen map_multijet p_multijet 100
 
 {-
 

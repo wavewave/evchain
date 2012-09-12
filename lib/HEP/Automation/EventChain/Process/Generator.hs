@@ -73,9 +73,11 @@ processSetup pname wname = PS { model = ADMXUDD
                               , workname = wname 
                               }
 
+{-
 -- |
 pset :: ModelParam ADMXUDD
 pset = ADMXUDDParam 750 1500 100 
+-}
 
 -- | 
 ucut :: UserCut 
@@ -89,8 +91,9 @@ ucut = UserCut {
 
 
 -- | 
-getRSetup :: Int -> RunSetup ADMXUDD 
-getRSetup n = RS { param = pset
+getRSetup :: ModelParam ADMXUDD -> Int -> RunSetup ADMXUDD 
+getRSetup pset n = 
+              RS { param = pset
                  , numevent = n
                  , machine = LHC7 ATLAS
                  , rgrun   = Fixed
@@ -107,20 +110,21 @@ getRSetup n = RS { param = pset
                  }
 
 -- | 
-getWSetup :: String -> String -> Int -> IO (WorkSetup ADMXUDD)
-getWSetup str wname n = 
+getWSetup :: ModelParam ADMXUDD 
+          -> String -> String -> Int -> IO (WorkSetup ADMXUDD)
+getWSetup pset str wname n = 
     WS <$> getScriptSetup 
        <*> pure (processSetup str wname)  
-       <*> pure (getRSetup n) 
+       <*> pure (getRSetup pset n) 
        <*> pure (CS NoParallel) 
        <*> pure (WebDAVRemoteDir "")
 
 
 -- | 
-work :: String -> String -> Int -> IO String 
-work str wname n  = do 
+work :: ModelParam ADMXUDD -> String -> String -> Int -> IO String 
+work pset str wname n  = do 
     putStrLn "models : admxudd "
-    wsetup <- getWSetup str wname n  
+    wsetup <- getWSetup pset str wname n  
     r <- flip runReaderT wsetup . runErrorT $ do 
            WS ssetup psetup rsetup _ _ <- ask 
            createWorkDir ssetup psetup
@@ -202,20 +206,22 @@ cnt1EvtD i decay (Counter incomingm outgoingm) ev@LHEvent {..} = do
 
 
 -- | 
-generateX :: ProcSpecMap -> CrossID ProcSmplIdx -> Int -> IO FilePath  
-generateX pm MkC {..} n = do 
+generateX :: ModelParam ADMXUDD 
+          -> ProcSpecMap -> CrossID ProcSmplIdx -> Int -> IO FilePath  
+generateX pset pm MkC {..} n = do 
     case HM.lookup Nothing pm of 
       Nothing -> fail "what? no root process in map?"
       Just str -> do 
         let nwname = "Test"++ show (hash (str,[] :: ProcSmplIdx)) 
         print nwname 
-        r <- work str nwname n 
+        r <- work pset str nwname n 
         threadDelay 1000000
         return r 
 
 -- | Single PDGID in dnode is assumed. 
-generateD :: ProcSpecMap -> DecayID ProcSmplIdx -> Int -> IO FilePath
-generateD pm MkD {..} n = do 
+generateD :: ModelParam ADMXUDD -> ProcSpecMap -> DecayID ProcSmplIdx 
+          -> Int -> IO FilePath
+generateD pset pm MkD {..} n = do 
     let psidx = (proc_procid . head . ptl_procs) dnode 
         pdgid' = (proc_pdgid . head . ptl_procs ) dnode
         pmidx  = mkPMIdx psidx pdgid' 
@@ -224,7 +230,7 @@ generateD pm MkD {..} n = do
       Just str -> do 
         let nwname = "Test"++ show (hash (str,pmidx))  
         print nwname 
-        r <- work str nwname n 
+        r <- work pset str nwname n 
         threadDelay 1000000
         return r   
 
@@ -233,7 +239,7 @@ generateD pm MkD {..} n = do
 ---------
 
 
-
+{-
 testmadgraphX :: CrossID ProcessInfo -> Int -> IO FilePath  
 testmadgraphX MkC {..} n = do str <-  work xnode "TestMadGraph" n  
                               putStrLn str 
@@ -243,3 +249,4 @@ testmadgraphX MkC {..} n = do str <-  work xnode "TestMadGraph" n
 testmadgraphD :: DecayID ProcessInfo -> Int -> IO FilePath 
 testmadgraphD = error "not implemented"
 
+-}

@@ -28,6 +28,9 @@ import           System.FilePath
 import           System.IO
 -- 
 import           HEP.Parser.LHEParser.Type
+import           HEP.Storage.WebDAV
+import           HEP.Automation.MadGraph.Model
+import           HEP.Automation.MadGraph.Model.ADMXUDD
 -- 
 import           HEP.Automation.EventChain.LHEConn
 import           HEP.Automation.EventChain.FileDriver
@@ -46,11 +49,11 @@ dummyEvInfo :: EventInfo
 dummyEvInfo = EvInfo 0 0 0 0 0 0
 
 -- | 
-evchainGen :: ProcSpecMap -> DCross -> Int -> IO () 
-evchainGen pmap cross n = do 
+evchainGen :: ModelParam ADMXUDD -> FilePath -> String -> FilePath -> ProcSpecMap -> DCross -> Int -> IO () 
+evchainGen pset tempdirbase urlbase remotedir pmap cross n = do 
   let idxcross = (mkCrossIDIdx . mkDICross) cross 
   print idxcross
-  rm <- createProcessX (generateX pmap) (generateD pmap) 
+  rm <- createProcessX (generateX pset pmap) (generateD pset pmap) 
           lheCntX lheCntD idxcross n
   let fp = fromJust (HM.lookup [] rm) 
       (_,fn) = splitFileName fp
@@ -65,10 +68,22 @@ evchainGen pmap cross n = do
   let r = runState (runErrorT (foldM action id lst)) rm2
   case fst r of 
     Left err -> putStrLn err
-    Right builder -> do  putStrLn (builder [])
-                         setCurrentDirectory "/home/wavewave"  
+    Right builder -> do  -- putStrLn (builder [])
+                         createDirectory tempdirbase 
+                         setCurrentDirectory tempdirbase 
                          print fb 
                          writeFile fb (builder [])
+                         uploadFile (webdavconfig urlbase) 
+                           (WebDAVRemoteDir remotedir) fb 
+                         return ()
   return ()
+
+
+webdavconfig urlbase = WebDAVConfig { webdav_path_wget = "/usr/bin/wget" 
+                                    , webdav_path_cadaver = "/usr/bin/cadaver" 
+                                    , webdav_baseurl = urlbase }
+
+
+
 
 
