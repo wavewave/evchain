@@ -49,11 +49,19 @@ dummyEvInfo :: EventInfo
 dummyEvInfo = EvInfo 0 0 0 0 0 0
 
 -- | 
-evchainGen :: ModelParam ADMXUDD -> FilePath -> String -> FilePath -> ProcSpecMap -> DCross -> Int -> IO () 
-evchainGen pset tempdirbase urlbase remotedir pmap cross n = do 
+evchainGen :: (FilePath,FilePath,FilePath)
+           -> ModelParam ADMXUDD 
+           -> FilePath 
+           -> String 
+           -> FilePath 
+           -> ProcSpecMap 
+           -> DCross 
+           -> Int 
+           -> IO () 
+evchainGen path pset tempdirbase urlbase remotedir pmap cross n = do 
   let idxcross = (mkCrossIDIdx . mkDICross) cross 
   print idxcross
-  rm <- createProcessX (generateX pset pmap) (generateD pset pmap) 
+  rm <- createProcessX (generateX path pset pmap) (generateD path pset pmap) 
           lheCntX lheCntD idxcross n
   let fp = fromJust (HM.lookup [] rm) 
       (_,fn) = splitFileName fp

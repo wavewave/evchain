@@ -53,16 +53,19 @@ import qualified Paths_madgraph_auto as PMadGraph
 import qualified Paths_madgraph_auto_model as PModel 
 
 -- |  
-getScriptSetup :: IO ScriptSetup
-getScriptSetup = do 
+getScriptSetup :: FilePath  -- ^ sandboxdir
+               -> FilePath  -- ^ mg5base 
+               -> FilePath  -- ^ mcrundir 
+               -> IO ScriptSetup
+getScriptSetup dir_sb dir_mg5 dir_mc = do 
   mdldir <- (</> "template") <$> PModel.getDataDir
   rundir <- (</> "template") <$> PMadGraph.getDataDir 
   return $ 
-    SS { modeltmpldir = mdldir -- "/home/wavewave/repo/src/madgraph-auto-model/template/"
-       , runtmpldir = rundir -- "/home/wavewave/repo/src/madgraph-auto/template"
-       , sandboxdir = "/home/wavewave/repo/workspace/montecarlo/working"
-       , mg5base    = "/home/wavewave/repo/ext/MadGraph5_v1_4_8_4/"
-       , mcrundir   = "/home/wavewave/repo/workspace/montecarlo/mc/"
+    SS { modeltmpldir = mdldir 
+       , runtmpldir = rundir 
+       , sandboxdir = dir_sb -- "/home/wavewave/repo/workspace/montecarlo/working" 
+       , mg5base    = dir_mg5 -- "/home/wavewave/repo/ext/MadGraph5_v1_4_8_4/"
+       , mcrundir   = dir_mc -- "/home/wavewave/repo/workspace/montecarlo/mc/"
        }
 
 -- | 
@@ -73,11 +76,6 @@ processSetup pname wname = PS { model = ADMXUDD
                               , workname = wname 
                               }
 
-{-
--- |
-pset :: ModelParam ADMXUDD
-pset = ADMXUDDParam 750 1500 100 
--}
 
 -- | 
 ucut :: UserCut 
@@ -110,10 +108,14 @@ getRSetup pset n =
                  }
 
 -- | 
-getWSetup :: ModelParam ADMXUDD 
-          -> String -> String -> Int -> IO (WorkSetup ADMXUDD)
-getWSetup pset str wname n = 
-    WS <$> getScriptSetup 
+getWSetup :: (FilePath,FilePath,FilePath)
+          -> ModelParam ADMXUDD 
+          -> String 
+          -> String 
+          -> Int 
+          -> IO (WorkSetup ADMXUDD)
+getWSetup (dir_sb,dir_mg5,dir_mc) pset str wname n = 
+    WS <$> getScriptSetup dir_sb dir_mg5 dir_mc 
        <*> pure (processSetup str wname)  
        <*> pure (getRSetup pset n) 
        <*> pure (CS NoParallel) 
@@ -121,10 +123,11 @@ getWSetup pset str wname n =
 
 
 -- | 
-work :: ModelParam ADMXUDD -> String -> String -> Int -> IO String 
-work pset str wname n  = do 
+work :: (FilePath,FilePath,FilePath)
+     -> ModelParam ADMXUDD -> String -> String -> Int -> IO String 
+work (dir_sb,dir_mg5,dir_mc) pset str wname n  = do 
     putStrLn "models : admxudd "
-    wsetup <- getWSetup pset str wname n  
+    wsetup <- getWSetup (dir_sb,dir_mg5,dir_mc) pset str wname n  
     r <- flip runReaderT wsetup . runErrorT $ do 
            WS ssetup psetup rsetup _ _ <- ask 
            createWorkDir ssetup psetup
@@ -138,24 +141,6 @@ work pset str wname n  = do
         Left msg -> error msg 
         Right str -> return str 
 
-
-{-
-work :: String -> String -> Int -> IO String 
-work str wname n  = do 
-    putStrLn "models : sm "
-    r <- flip runReaderT (wsetup str wname n) . runErrorT $ do 
-        WS ssetup psetup rsetup _ _ <- ask 
-        createWorkDir ssetup psetup
-        cardPrepare                      
-        generateEvents   
-        let taskname = makeRunName psetup rsetup  
-        wdir <- getWorkDir 
-        let fname = wdir </> "Events" </> taskname ++ "_unweighted_events.lhe.gz"
-        return fname 
-    case r of 
-        Left msg -> error msg 
-        Right str -> return str 
--}
 
 -- | 
 
@@ -206,22 +191,30 @@ cnt1EvtD i decay (Counter incomingm outgoingm) ev@LHEvent {..} = do
 
 
 -- | 
-generateX :: ModelParam ADMXUDD 
-          -> ProcSpecMap -> CrossID ProcSmplIdx -> Int -> IO FilePath  
-generateX pset pm MkC {..} n = do 
+generateX :: (FilePath,FilePath,FilePath) 
+          -> ModelParam ADMXUDD 
+          -> ProcSpecMap 
+          -> CrossID ProcSmplIdx 
+          -> Int 
+          -> IO FilePath  
+generateX (dir_sb,dir_mg5,dir_mc) pset pm MkC {..} n = do 
     case HM.lookup Nothing pm of 
       Nothing -> fail "what? no root process in map?"
       Just str -> do 
         let nwname = "Test"++ show (hash (str,[] :: ProcSmplIdx)) 
         print nwname 
-        r <- work pset str nwname n 
+        r <- work (dir_sb,dir_mg5,dir_mc) pset str nwname n 
         threadDelay 1000000
         return r 
 
 -- | Single PDGID in dnode is assumed. 
-generateD :: ModelParam ADMXUDD -> ProcSpecMap -> DecayID ProcSmplIdx 
-          -> Int -> IO FilePath
-generateD pset pm MkD {..} n = do 
+generateD :: (FilePath,FilePath,FilePath)
+          -> ModelParam ADMXUDD 
+          -> ProcSpecMap 
+          -> DecayID ProcSmplIdx 
+          -> Int 
+          -> IO FilePath
+generateD (dir_sb,dir_mg5,dir_mc) pset pm MkD {..} n = do 
     let psidx = (proc_procid . head . ptl_procs) dnode 
         pdgid' = (proc_pdgid . head . ptl_procs ) dnode
         pmidx  = mkPMIdx psidx pdgid' 
@@ -230,7 +223,7 @@ generateD pset pm MkD {..} n = do
       Just str -> do 
         let nwname = "Test"++ show (hash (str,pmidx))  
         print nwname 
-        r <- work pset str nwname n 
+        r <- work (dir_sb,dir_mg5,dir_mc) pset str nwname n 
         threadDelay 1000000
         return r   
 
