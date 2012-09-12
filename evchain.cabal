@@ -76,15 +76,11 @@ Library
                    containers == 0.4.*
                    
   Exposed-Modules: 
---                    HEP.Automation.MadGraph.EventChain.Command
-
---                   HEP.Automation.MadGraph.EventChain.Job
---                   HEP.Automation.MadGraph.EventChain.Print
---                   HEP.Automation.MadGraph.EventChain.ProgType
                    HEP.Automation.EventChain.FileDriver
                    HEP.Automation.EventChain.LHEConn
                    HEP.Automation.EventChain.Main 
                    HEP.Automation.EventChain.Match
+                   HEP.Automation.EventChain.Print
                    HEP.Automation.EventChain.Process
                    HEP.Automation.EventChain.Process.Generator
                    HEP.Automation.EventChain.Simulator
@@ -94,8 +90,6 @@ Library
                    HEP.Automation.EventChain.Type.Skeleton
                    HEP.Automation.EventChain.Type.Spec         
                    HEP.Automation.EventChain.Util
---                    HEP.Automation.EventChain.Type.CVec
-
   Other-Modules: 
 
  

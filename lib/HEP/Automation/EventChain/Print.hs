@@ -1,38 +1,32 @@
-module HEP.Automation.MadGraph.EventChain.Print where
+-----------------------------------------------------------------------------
+-- |
+-- Module      : HEP.Automation.EventChain.Print
+-- Copyright   : (c) 2012 Ian-Woo Kim
+--
+-- License     : BSD3
+-- Maintainer  : Ian-Woo Kim <ianwookim@gmail.com>
+-- Stability   : experimental
+-- Portability : GHC
+--
+-- Print format utility 
+-- 
+-----------------------------------------------------------------------------
 
-import Text.Printf
-import HEP.Parser.LHEParser.Type
-import HEP.Automation.MadGraph.EventChain.Type
+module HEP.Automation.EventChain.Print where
+
+-- others
 import Data.List (intercalate)
+import Text.Printf
+-- from hep-platform 
+import HEP.Parser.LHEParser.Type
+-- this package
+-- import HEP.Automation.MadGraph.EventChain.Type
 
 -- | 
-
 endl :: String 
 endl = "\n"
 
--- | 
-
-printCrossStr :: CrossID -> String 
-printCrossStr (GCross xprocg inc out) = 
-    "main process = " ++ show pid ++ endl
-     ++ intercalate endl (map printDecay inc) ++ endl
-     ++ intercalate endl (map printDecay out) 
---      ++ "length inc = " ++ show (length inc) ++ endl
---      ++ "length out = " ++ show (length out)
-  where XNode pid = xprocg  
-
 -- |
-
-printDecay :: DecayID -> String
-printDecay (GTerminal (TNode tid)) = "terminal = " ++ show tid
-printDecay (GDecay (DNode pdgID procid, gdecays)) = 
-    "decay = ( " ++ show pdgID ++ ", " ++ show procid  ++ ", ["
-    ++ intercalate "," (map printDecay gdecays)
-    ++ "]"
-    ++ ")"
-
--- |
-
 lheFormatOutput :: LHEvent -> String 
 lheFormatOutput (LHEvent einfo pinfos) =
   "<event>" ++ endl 
@@ -46,7 +40,6 @@ lheFormatOutput (LHEvent einfo pinfos) =
   ++ "</event>" -- ++ endl
 
 -- | 
-
 pformat :: PtlInfo -> String 
 pformat pinfo = 
     {- printf "{- %3d -}" (ptlid pinfo) ++ -} 
@@ -67,6 +60,30 @@ pformat pinfo =
   where (pupx,pupy,pupz,pupt,pupm) = pup pinfo 
 
 -- | 
-
 pformats :: [PtlInfo] -> String
 pformats = concatMap pformat 
+
+
+{-
+-- | 
+printCrossStr :: CrossID -> String 
+printCrossStr (GCross xprocg inc out) = 
+    "main process = " ++ show pid ++ endl
+     ++ intercalate endl (map printDecay inc) ++ endl
+     ++ intercalate endl (map printDecay out) 
+--      ++ "length inc = " ++ show (length inc) ++ endl
+--      ++ "length out = " ++ show (length out)
+  where XNode pid = xprocg  
+-}
+
+{-
+-- |
+
+printDecay :: DecayID -> String
+printDecay (GTerminal (TNode tid)) = "terminal = " ++ show tid
+printDecay (GDecay (DNode pdgID procid, gdecays)) = 
+    "decay = ( " ++ show pdgID ++ ", " ++ show procid  ++ ", ["
+    ++ intercalate "," (map printDecay gdecays)
+    ++ "]"
+    ++ ")"
+-}
