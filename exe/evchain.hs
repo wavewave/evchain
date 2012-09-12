@@ -24,7 +24,7 @@ import HEP.Automation.EventChain.SpecDSL
 import HEP.Automation.EventChain.Simulator 
 import HEP.Automation.EventChain.Process
 import HEP.Automation.EventChain.Process.Generator
-
+import HEP.Automation.EventChain.Main 
 
 
 {-
@@ -127,6 +127,14 @@ map_multijet =
                 ] 
 
 
+
+
+main :: IO () 
+main = evchainGen map_multijet p_multijet 100
+
+{-
+
+
 -- | 
 getLHEvents :: FilePath -> IO [LHEvent] 
 getLHEvents fn = do 
@@ -142,9 +150,6 @@ makeLHEProcessMap = T.mapM getLHEvents
 
 
 
-main :: IO () 
-main = evchainGen map_multijet p_multijet 100
-
 -- | 
 evchainGen :: ProcSpecMap -> DCross -> Int -> IO () 
 evchainGen pmap cross n = do 
@@ -158,5 +163,5 @@ evchainGen pmap cross n = do
   print (fst r)
 
 
-
+-}
 --  matchFullCross spec3_tbbar_idx 
