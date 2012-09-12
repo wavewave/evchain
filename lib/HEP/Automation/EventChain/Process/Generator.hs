@@ -220,7 +220,7 @@ generateD pm MkD {..} n = do
         pdgid' = (proc_pdgid . head . ptl_procs ) dnode
         pmidx  = mkPMIdx psidx pdgid' 
     case HM.lookup pmidx pm of 
-      Nothing -> fail "cannot find process for pmidx"
+      Nothing -> fail $ "cannot find process for pmidx = " ++ show pmidx
       Just str -> do 
         let nwname = "Test"++ show (hash (str,pmidx))  
         print nwname 

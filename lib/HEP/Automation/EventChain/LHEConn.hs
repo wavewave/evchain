@@ -18,7 +18,7 @@ module HEP.Automation.EventChain.LHEConn where
 -- other package of others
 import           Control.Applicative ((<$>),(<*>))
 import           Control.Monad.Error hiding (mapM)
-import           Control.Monad.Identity (runIdentity)
+import           Control.Monad.Identity (runIdentity,Identity(..))
 import           Control.Monad.State hiding (mapM)
 import           Data.Either
 import           Data.Foldable (foldr,foldrM)
@@ -48,15 +48,6 @@ import           Prelude hiding (mapM,foldr)
 -- | 
 type Status = Int
 
-{-
--- | 
-getProcessIndex :: ContextEvent ProcessIndex 
-                -> (ParticleID,PDGID) 
-                -> ProcessIndex
-getProcessIndex ctxt x = 
-    maybe [x] ((x:).fst) (relativeContext ctxt)
--}
-
 -- | 
 getPDGID4ParticleID :: MatchedLHEventProcess p -> ParticleID -> Maybe PDGID
 getPDGID4ParticleID ctxt ptl_id  
@@ -81,7 +72,6 @@ chainProcIdx pidx mev dcy  = do
     case getPDGID4ParticleID mev ptl_id of 
       Nothing -> throwError "ParticleID not matched"
       Just pdg_id -> return ((ptl_id,pdg_id):pidx)
-
 
 -- | 
 matchFullDecay :: (Show p) =>
@@ -148,14 +138,14 @@ adjustPtlInfosInMLHEvent (f,g) mev mm = (map snd inc,map snd out,int,mm'')
 
 
 -- | 
-accumTotalEvent :: CrossFull ProcessIndex -> IO [PtlInfo]
-accumTotalEvent g = do 
-    (_,_,result,_) <- execStateT (traverse action . CrossF $ g) 
-                                 (0,0, IM.empty :: IM.IntMap PtlInfo
-                                 , M.empty :: ParticleCoordMap ) 
-    let result' = IM.elems result
-    let sortedResult = sortBy (compare `on` ptlid) result'
-    return sortedResult 
+accumTotalEvent :: CrossFull ProcessIndex -> [PtlInfo]
+accumTotalEvent g =  
+    let (_,_,result,_) = execState (traverse action . CrossF $ g) 
+                                      (0,0, IM.empty :: IM.IntMap PtlInfo
+                                      , M.empty :: ParticleCoordMap )
+        result' = IM.elems result
+        sortedResult = sortBy (compare `on` ptlid) result'
+    in sortedResult 
   where action cev = do 
           let (lrot,mmom,mev) = (absoluteContext cev, relativeContext cev, selfEvent cev)
               pinfos = (getPInfos . mlhev_orig) mev
