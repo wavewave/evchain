@@ -138,14 +138,17 @@ adjustPtlInfosInMLHEvent (f,g) mev mm = (map snd inc,map snd out,int,mm'')
 
 
 -- | 
-accumTotalEvent :: CrossFull ProcessIndex -> [PtlInfo]
+accumTotalEvent :: CrossFull ProcessIndex -> LHEvent -- (EvInfo, [PtlInfo])
 accumTotalEvent g =  
     let (_,_,result,_) = execState (traverse action . CrossF $ g) 
                                       (0,0, IM.empty :: IM.IntMap PtlInfo
                                       , M.empty :: ParticleCoordMap )
         result' = IM.elems result
         sortedResult = sortBy (compare `on` ptlid) result'
-    in sortedResult 
+        evinfo = (mlhev_einfo . selfEvent . xnode) g 
+        nptl = length sortedResult
+        nevinfo = evinfo { nup = nptl } 
+    in LHEvent nevinfo sortedResult 
   where action cev = do 
           let (lrot,mmom,mev) = (absoluteContext cev, relativeContext cev, selfEvent cev)
               pinfos = (getPInfos . mlhev_orig) mev
@@ -189,34 +192,4 @@ motherAdjustID (oid,nid) = idAdj (\y -> if y == oid then nid else y)
 
 
 
-
---------------
--- obsolete functions 
-----------------
-
-
-{-
--- | 
-extractIDsFromMLHE :: MatchedLHEvent -> ([(ParticleID,PtlID)],[(ParticleID,PtlID)])
-extractIDsFromMLHE mlhe = 
-  ( map (\x->(fst x, ptlid (snd x))) (mlhev_incoming mlhe)
-  , map (\x->(fst x, ptlid (snd x))) (mlhev_outgoing mlhe) )
--}
-
-
-
-
-{-
--- | 
-matchPtl4Decay :: (DNode (ParticleID,PKind) ProcessID, [DecayID])
-               -> LHEvent
-               -> Either String MatchedLHEvent
-matchPtl4Decay (inc,out) lhe = matchInOut procid (incids,outids) lhe 
-  where procid :: ProcessID
-        incids :: [(ParticleID,SelectFunc)]
-        (procid,incids) = case inc of DNode (x,y) p -> (p,[(x,mkSelFunc In y)])
-        outids = map (getSelPair Out) out 
--}
-
-      
 

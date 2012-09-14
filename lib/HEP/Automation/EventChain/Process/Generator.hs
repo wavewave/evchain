@@ -63,9 +63,9 @@ getScriptSetup dir_sb dir_mg5 dir_mc = do
   return $ 
     SS { modeltmpldir = mdldir 
        , runtmpldir = rundir 
-       , sandboxdir = dir_sb -- "/home/wavewave/repo/workspace/montecarlo/working" 
-       , mg5base    = dir_mg5 -- "/home/wavewave/repo/ext/MadGraph5_v1_4_8_4/"
-       , mcrundir   = dir_mc -- "/home/wavewave/repo/workspace/montecarlo/mc/"
+       , sandboxdir = dir_sb 
+       , mg5base    = dir_mg5
+       , mcrundir   = dir_mc 
        }
 
 -- | 
@@ -75,7 +75,6 @@ processSetup pname wname = PS { model = ADMXUDD
                               , processBrief = "multijet" 
                               , workname = wname 
                               }
-
 
 -- | 
 ucut :: UserCut 
@@ -144,7 +143,6 @@ work (dir_sb,dir_mg5,dir_mc) pset str wname n  = do
 
 
 -- | 
-
 lheCntX :: (Show p) => CrossID p -> FilePath -> IO Counter 
 lheCntX cross fp = do 
     h <- openFile fp ReadMode
@@ -154,7 +152,6 @@ lheCntX cross fp = do
 
 
 -- |
-
 cnt1EvtX :: (Show p) => CrossID p -> Counter -> LHEvent -> IO Counter 
 cnt1EvtX cross (Counter incomingm outgoingm) ev@LHEvent {..}  = do 
     r <- matchX cross ev 
@@ -168,7 +165,6 @@ cnt1EvtX cross (Counter incomingm outgoingm) ev@LHEvent {..}  = do
         return (Counter rim rom)
 
 -- | 
-
 lheCntD :: (Show p) => PDGID -> DecayID p -> FilePath -> IO Counter
 lheCntD i decay fp = do 
     h <- openFile fp ReadMode
@@ -177,7 +173,6 @@ lheCntD i decay fp = do
     return r
 
 -- | 
-
 cnt1EvtD :: (Show p) => PDGID -> DecayID p -> Counter -> LHEvent -> IO Counter 
 cnt1EvtD i decay (Counter incomingm outgoingm) ev@LHEvent {..} = do 
     r <- matchD i decay ev 
@@ -189,7 +184,6 @@ cnt1EvtD i decay (Counter incomingm outgoingm) ev@LHEvent {..} = do
             rim = foldr f incomingm mlhev_incoming 
             rom = foldr f outgoingm mlhev_outgoing
         return (Counter rim rom)
-
 
 -- | 
 generateX :: (FilePath,FilePath,FilePath) 
@@ -228,19 +222,3 @@ generateD (dir_sb,dir_mg5,dir_mc) pset pm MkD {..} n = do
         threadDelay 1000000
         return r   
 
---------
---
----------
-
-
-{-
-testmadgraphX :: CrossID ProcessInfo -> Int -> IO FilePath  
-testmadgraphX MkC {..} n = do str <-  work xnode "TestMadGraph" n  
-                              putStrLn str 
-                              return str 
-                              
-
-testmadgraphD :: DecayID ProcessInfo -> Int -> IO FilePath 
-testmadgraphD = error "not implemented"
-
--}

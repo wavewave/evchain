@@ -69,8 +69,8 @@ evchainGen path pset tempdirbase urlbase remotedir pmap cross n = do
   print fn 
   rm2 <- makeLHEProcessMap rm 
   let action acc () = do 
-        pinfos <- accumTotalEvent <$> matchFullCross idxcross 
-        let output = lheFormatOutput (LHEvent dummyEvInfo pinfos) ++ endl 
+        lhev <- accumTotalEvent <$> matchFullCross idxcross 
+        let output = lheFormatOutput lhev ++ endl 
         return (acc . (output++))
   let lst = replicate n ()
   let r = runState (runErrorT (foldM action id lst)) rm2
