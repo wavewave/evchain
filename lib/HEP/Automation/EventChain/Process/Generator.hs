@@ -69,12 +69,15 @@ getScriptSetup dir_sb dir_mg5 dir_mc = do
        }
 
 -- | 
-processSetup :: String -> String -> ProcessSetup ADMXUDD
-processSetup pname wname = PS { model = ADMXUDD
-                              , process = pname 
-                              , processBrief = "multijet" 
-                              , workname = wname 
-                              }
+processSetup :: model  
+             -> String 
+             -> String 
+             -> ProcessSetup model
+processSetup mdl pname wname = PS { model = mdl
+                                  , process = pname 
+                                  , processBrief = "multijet" 
+                                  , workname = wname 
+                                  }
 
 -- | 
 ucut :: UserCut 
@@ -88,7 +91,7 @@ ucut = UserCut {
 
 
 -- | 
-getRSetup :: ModelParam ADMXUDD -> Int -> RunSetup ADMXUDD 
+getRSetup :: ModelParam model -> Int -> RunSetup model 
 getRSetup pset n = 
               RS { param = pset
                  , numevent = n
@@ -107,26 +110,33 @@ getRSetup pset n =
                  }
 
 -- | 
-getWSetup :: (FilePath,FilePath,FilePath)
-          -> ModelParam ADMXUDD 
+getWSetup :: model 
+          -> (FilePath,FilePath,FilePath)
+          -> ModelParam model  
           -> String 
           -> String 
           -> Int 
-          -> IO (WorkSetup ADMXUDD)
-getWSetup (dir_sb,dir_mg5,dir_mc) pset str wname n = 
+          -> IO (WorkSetup model)
+getWSetup mdl (dir_sb,dir_mg5,dir_mc) pset str wname n = 
     WS <$> getScriptSetup dir_sb dir_mg5 dir_mc 
-       <*> pure (processSetup str wname)  
+       <*> pure (processSetup mdl str wname)  
        <*> pure (getRSetup pset n) 
        <*> pure (CS NoParallel) 
        <*> pure (WebDAVRemoteDir "")
 
 
 -- | 
-work :: (FilePath,FilePath,FilePath)
-     -> ModelParam ADMXUDD -> String -> String -> Int -> IO String 
-work (dir_sb,dir_mg5,dir_mc) pset str wname n  = do 
-    putStrLn "models : admxudd "
-    wsetup <- getWSetup (dir_sb,dir_mg5,dir_mc) pset str wname n  
+work :: (Model model) => 
+        model  
+     -> (FilePath,FilePath,FilePath)
+     -> ModelParam model 
+     -> String 
+     -> String 
+     -> Int 
+     -> IO String 
+work mdl (dir_sb,dir_mg5,dir_mc) pset str wname n  = do 
+    putStrLn $ "models : " ++ modelName mdl 
+    wsetup <- getWSetup mdl (dir_sb,dir_mg5,dir_mc) pset str wname n  
     r <- flip runReaderT wsetup . runErrorT $ do 
            WS ssetup psetup rsetup _ _ <- ask 
            createWorkDir ssetup psetup
@@ -186,30 +196,34 @@ cnt1EvtD i decay (Counter incomingm outgoingm) ev@LHEvent {..} = do
         return (Counter rim rom)
 
 -- | 
-generateX :: (FilePath,FilePath,FilePath) 
-          -> ModelParam ADMXUDD 
+generateX :: (Model model) => 
+             model 
+          -> (FilePath,FilePath,FilePath) 
+          -> ModelParam model  
           -> ProcSpecMap 
           -> CrossID ProcSmplIdx 
           -> Int 
           -> IO FilePath  
-generateX (dir_sb,dir_mg5,dir_mc) pset pm MkC {..} n = do 
+generateX mdl (dir_sb,dir_mg5,dir_mc) pset pm MkC {..} n = do 
     case HM.lookup Nothing pm of 
       Nothing -> fail "what? no root process in map?"
       Just str -> do 
         let nwname = "Test"++ show (hash (str,[] :: ProcSmplIdx)) 
         print nwname 
-        r <- work (dir_sb,dir_mg5,dir_mc) pset str nwname n 
+        r <- work mdl (dir_sb,dir_mg5,dir_mc) pset str nwname n 
         threadDelay 1000000
         return r 
 
 -- | Single PDGID in dnode is assumed. 
-generateD :: (FilePath,FilePath,FilePath)
-          -> ModelParam ADMXUDD 
+generateD :: (Model model) => 
+             model 
+          -> (FilePath,FilePath,FilePath)
+          -> ModelParam model  
           -> ProcSpecMap 
           -> DecayID ProcSmplIdx 
           -> Int 
           -> IO FilePath
-generateD (dir_sb,dir_mg5,dir_mc) pset pm MkD {..} n = do 
+generateD mdl (dir_sb,dir_mg5,dir_mc) pset pm MkD {..} n = do 
     let psidx = (proc_procid . head . ptl_procs) dnode 
         pdgid' = (proc_pdgid . head . ptl_procs ) dnode
         pmidx  = mkPMIdx psidx pdgid' 
@@ -218,7 +232,7 @@ generateD (dir_sb,dir_mg5,dir_mc) pset pm MkD {..} n = do
       Just str -> do 
         let nwname = "Test"++ show (hash (str,pmidx))  
         print nwname 
-        r <- work (dir_sb,dir_mg5,dir_mc) pset str nwname n 
+        r <- work mdl (dir_sb,dir_mg5,dir_mc) pset str nwname n 
         threadDelay 1000000
         return r   
 

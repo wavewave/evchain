@@ -49,8 +49,10 @@ dummyEvInfo :: EventInfo
 dummyEvInfo = EvInfo 0 0 0 0 0 0
 
 -- | 
-evchainGen :: (FilePath,FilePath,FilePath)
-           -> ModelParam ADMXUDD 
+evchainGen :: (Model model) => 
+              model 
+           -> (FilePath,FilePath,FilePath)
+           -> ModelParam model 
            -> FilePath 
            -> String 
            -> FilePath 
@@ -58,10 +60,12 @@ evchainGen :: (FilePath,FilePath,FilePath)
            -> DCross 
            -> Int 
            -> IO () 
-evchainGen path pset tempdirbase urlbase remotedir pmap cross n = do 
+evchainGen mdl path pset tempdirbase urlbase remotedir pmap cross n = do 
   let idxcross = (mkCrossIDIdx . mkDICross) cross 
   print idxcross
-  rm <- createProcessX (generateX path pset pmap) (generateD path pset pmap) 
+  rm <- createProcessX 
+          (generateX mdl path pset pmap) 
+          (generateD mdl path pset pmap) 
           lheCntX lheCntD idxcross n
   let fp = fromJust (HM.lookup [] rm) 
       (_,fn) = splitFileName fp
@@ -76,8 +80,7 @@ evchainGen path pset tempdirbase urlbase remotedir pmap cross n = do
   let r = runState (runErrorT (foldM action id lst)) rm2
   case fst r of 
     Left err -> putStrLn err
-    Right builder -> do  -- putStrLn (builder [])
-                         createDirectory tempdirbase 
+    Right builder -> do  createDirectory tempdirbase 
                          setCurrentDirectory tempdirbase 
                          print fb 
                          writeFile fb (builder [])
@@ -86,7 +89,8 @@ evchainGen path pset tempdirbase urlbase remotedir pmap cross n = do
                          return ()
   return ()
 
-
+-- |
+webdavconfig :: String -> WebDAVConfig 
 webdavconfig urlbase = WebDAVConfig { webdav_path_wget = "/usr/bin/wget" 
                                     , webdav_path_cadaver = "/usr/bin/cadaver" 
                                     , webdav_baseurl = urlbase }
