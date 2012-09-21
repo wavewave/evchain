@@ -236,3 +236,59 @@ generateD mdl (dir_sb,dir_mg5,dir_mc) pset pm MkD {..} n = do
         threadDelay 1000000
         return r   
 
+-- | 
+dummyX :: (Model model) => 
+          model 
+          -> (FilePath,FilePath,FilePath) 
+          -> ModelParam model  
+          -> ProcSpecMap 
+          -> CrossID ProcSmplIdx 
+          -> Int 
+          -> IO FilePath  
+dummyX mdl (dir_sb,dir_mg5,dir_mc) pset pm MkC {..} n = do 
+    case HM.lookup Nothing pm of 
+      Nothing -> fail "what? no root process in map?"
+      Just str -> do 
+        let nwname = "Test"++ show (hash (str,[] :: ProcSmplIdx)) 
+        print nwname 
+        r <- dummywork mdl (dir_sb,dir_mg5,dir_mc) pset str nwname n 
+        return r 
+
+
+-- | Single PDGID in dnode is assumed. 
+dummyD :: (Model model) => 
+             model 
+          -> (FilePath,FilePath,FilePath)
+          -> ModelParam model  
+          -> ProcSpecMap 
+          -> DecayID ProcSmplIdx 
+          -> Int 
+          -> IO FilePath
+dummyD mdl (dir_sb,dir_mg5,dir_mc) pset pm MkD {..} n = do 
+    let psidx = (proc_procid . head . ptl_procs) dnode 
+        pdgid' = (proc_pdgid . head . ptl_procs ) dnode
+        pmidx  = mkPMIdx psidx pdgid' 
+    case HM.lookup pmidx pm of 
+      Nothing -> fail $ "cannot find process for pmidx = " ++ show pmidx
+      Just str -> do 
+        let nwname = "Test"++ show (hash (str,pmidx))  
+        print nwname 
+        r <- dummywork mdl (dir_sb,dir_mg5,dir_mc) pset str nwname n 
+        threadDelay 1000000
+        return r   
+-- | 
+dummywork :: (Model model) => 
+        model  
+     -> (FilePath,FilePath,FilePath)
+     -> ModelParam model 
+     -> String 
+     -> String 
+     -> Int 
+     -> IO String 
+dummywork mdl (dir_sb,dir_mg5,dir_mc) pset str wname n  = do 
+    putStrLn $ "models : " ++ modelName mdl 
+    WS ssetup psetup rsetup _ _ <- getWSetup mdl (dir_sb,dir_mg5,dir_mc) pset str wname n  
+    let wdir = mcrundir ssetup </> workname psetup
+        taskname = makeRunName psetup rsetup  
+        fname = wdir </> "Events" </> taskname ++ "_unweighted_events.lhe.gz"
+    return fname 

@@ -138,7 +138,7 @@ adjustPtlInfosInMLHEvent (f,g) mev mm = (map snd inc,map snd out,int,mm'')
 
 
 -- | 
-accumTotalEvent :: CrossFull ProcessIndex -> LHEvent -- (EvInfo, [PtlInfo])
+accumTotalEvent :: CrossFull ProcessIndex -> LHEvent 
 accumTotalEvent g =  
     let (_,_,result,_) = execState (traverse action . CrossF $ g) 
                                       (0,0, IM.empty :: IM.IntMap PtlInfo

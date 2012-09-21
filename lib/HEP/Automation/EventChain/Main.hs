@@ -95,13 +95,6 @@ evchainGen mdl path pset tempdirbase urlbase remotedir pmap cross n = do
       (_,fn) = splitFileName fp
       (fb,_) = splitExtension fn 
   print fn 
-
-  {-
-  temph <- openFile fp ReadMode  
-  v <- sourceHandle temph =$= ungzip =$= parseBytes def =$= CU.dropWhile (not.isEventStart) =$= renderBytesCL.consume
-  hClose temph 
-  print v
-  -}
   bstr <- getheader fp 
 
   rm2 <- makeLHEProcessMap rm 
@@ -117,7 +110,7 @@ evchainGen mdl path pset tempdirbase urlbase remotedir pmap cross n = do
                          createDirectory tempdirbase 
                          setCurrentDirectory tempdirbase 
                          print fb 
-                         writeFile fb (builder' []) -- (builder [])
+                         writeFile fb (builder' []) 
                          uploadFile (webdavconfig urlbase) 
                            (WebDAVRemoteDir remotedir) fb 
                          return ()
@@ -128,6 +121,53 @@ webdavconfig :: String -> WebDAVConfig
 webdavconfig urlbase = WebDAVConfig { webdav_path_wget = "/usr/bin/wget" 
                                     , webdav_path_cadaver = "/usr/bin/cadaver" 
                                     , webdav_baseurl = urlbase }
+
+
+-- | 
+dummyGen :: (Model model) => 
+              model 
+           -> (FilePath,FilePath,FilePath)
+           -> ModelParam model 
+           -> FilePath 
+           -> String 
+           -> FilePath 
+           -> ProcSpecMap 
+           -> DCross 
+           -> Int 
+           -> IO () 
+dummyGen mdl path pset tempdirbase urlbase remotedir pmap cross n = do 
+  let idxcross = (mkCrossIDIdx . mkDICross) cross 
+  print idxcross
+  rm <- createProcessX 
+          (dummyX mdl path pset pmap) 
+          (dummyD mdl path pset pmap) 
+          lheCntX lheCntD idxcross n
+  print rm 
+
+  let fp = fromJust (HM.lookup [] rm) 
+      (_,fn) = splitFileName fp
+      (fb,_) = splitExtension fn 
+  print fn 
+  bstr <- getheader fp 
+
+  rm2 <- makeLHEProcessMap rm 
+  let action acc () = do 
+        lhev <- accumTotalEvent <$> matchFullCross idxcross 
+        let output = lheFormatOutput lhev ++ endl 
+        return (acc . (output++))
+  let lst = replicate n ()
+  let r = runState (runErrorT (foldM action id lst)) rm2
+  case fst r of 
+    Left err -> putStrLn err
+    Right builder -> do  let builder' = ((C8.unpack bstr)++) . builder
+                         createDirectory tempdirbase 
+                         setCurrentDirectory tempdirbase 
+                         print fb 
+                         writeFile fb (builder' "\n</LesHouchesEvents>\n\n") 
+                         uploadFile (webdavconfig urlbase) 
+                           (WebDAVRemoteDir remotedir) fb 
+                         return ()
+  return ()
 
 
 

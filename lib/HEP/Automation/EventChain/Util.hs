@@ -46,24 +46,27 @@ idChange r a = a + r
 -- |
 colChangeFunc :: Int -> (Maybe PtlInfo,PtlInfo) -> Int -> Int 
 colChangeFunc offset (moptl,nptl) 0 = 0 
-colChangeFunc offset (Nothing,nptl) a =  if a == col1 || a == col2 then a else a + offset  
-  where (col1,col2) = icolup nptl 
+colChangeFunc offset (Nothing,nptl) a = a --   if a == col1 || a == col2 then a else a + offset  
+--   where (col1,col2) = icolup nptl 
 colChangeFunc offset (Just optl,nptl) a 
-  | a == col1 = fst (icolup optl)
-  | a == col2 = snd (icolup optl) 
-  | otherwise = a + offset 
+  | a == col1 = fst (icolup optl)  
+  | a == col2 = snd (icolup optl)  
+  | otherwise = a + offset  
   where (col1,col2) = icolup nptl 
 
 -- | 
 colChangeOffset :: (Maybe PtlInfo,PtlInfo) -> Int 
-colChangeOffset (moptl,nptl) = let r | col1 /=0 && col2 /= 0 = 2
-                                     | col1 /=0 && col2 == 0 = 1 
-                                     | otherwise = 0 
+colChangeOffset (Nothing,_) = 0 
+colChangeOffset (Just _,nptl) = let r | col1 /=0 && col2 /= 0 = 2 
+                                      | col1 /=0 && col2 == 0 = 1  
+                                      | otherwise = 0  
                                in r 
   where (col1,col2) = icolup nptl 
 
 -- | 
-colChangePair :: Int -> (Maybe PtlInfo,PtlInfo) -> (Int, Int -> Int)
+colChangePair :: Int 
+              -> (Maybe PtlInfo,PtlInfo) 
+              -> (Int, Int -> Int)
 colChangePair offset ptls = (colChangeOffset ptls, colChangeFunc offset ptls)
 
 -- | 
