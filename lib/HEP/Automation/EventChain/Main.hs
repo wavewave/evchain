@@ -18,15 +18,23 @@ import           Control.Applicative
 import           Control.Monad 
 import           Control.Monad.Error 
 import           Control.Monad.State 
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as C8
 import           Data.Conduit
+import           Data.Conduit.Binary 
 import qualified Data.Conduit.List as CL
+import qualified Data.Conduit.Util.Control as CU 
+import           Data.Conduit.Zlib
 import qualified Data.Traversable as T
 import qualified Data.HashMap.Lazy as HM
 import           Data.Maybe 
 import           System.Directory 
 import           System.FilePath 
 import           System.IO
+import           Text.XML.Stream.Parse
+import           Text.XML.Stream.Render
 -- 
+import           HEP.Parser.LHEParser.Parser.Conduit
 import           HEP.Parser.LHEParser.Type
 import           HEP.Storage.WebDAV
 import           HEP.Automation.MadGraph.Model
@@ -45,8 +53,24 @@ import           HEP.Automation.EventChain.Type.Process
 --
 import Debug.Trace
 
+{-
 dummyEvInfo :: EventInfo 
 dummyEvInfo = EvInfo 0 0 0 0 0 0
+-}
+
+
+getheader :: FilePath -> IO B.ByteString 
+getheader fp = do 
+  temph <- openFile fp ReadMode  
+  v <- sourceHandle temph =$= ungzip =$= parseBytes def $$ CL.consume
+  -- =$= CU.dropWhile (not.isEventStart) $$ CL.consume
+  hClose temph 
+  let r = Prelude.takeWhile (not.isEventStart) v
+  -- mapM_ (putStrLn.show) r 
+  bstrs <- CL.sourceList r =$= renderBytes def $$ CL.consume 
+  return (B.concat bstrs)
+  -- (Prelude.dropWhile (not.isEventStart) v)
+
 
 -- | 
 evchainGen :: (Model model) => 
@@ -71,6 +95,15 @@ evchainGen mdl path pset tempdirbase urlbase remotedir pmap cross n = do
       (_,fn) = splitFileName fp
       (fb,_) = splitExtension fn 
   print fn 
+
+  {-
+  temph <- openFile fp ReadMode  
+  v <- sourceHandle temph =$= ungzip =$= parseBytes def =$= CU.dropWhile (not.isEventStart) =$= renderBytesCL.consume
+  hClose temph 
+  print v
+  -}
+  bstr <- getheader fp 
+
   rm2 <- makeLHEProcessMap rm 
   let action acc () = do 
         lhev <- accumTotalEvent <$> matchFullCross idxcross 
@@ -80,10 +113,11 @@ evchainGen mdl path pset tempdirbase urlbase remotedir pmap cross n = do
   let r = runState (runErrorT (foldM action id lst)) rm2
   case fst r of 
     Left err -> putStrLn err
-    Right builder -> do  createDirectory tempdirbase 
+    Right builder -> do  let builder' = ((C8.unpack bstr)++) . builder
+                         createDirectory tempdirbase 
                          setCurrentDirectory tempdirbase 
                          print fb 
-                         writeFile fb (builder [])
+                         writeFile fb (builder' []) -- (builder [])
                          uploadFile (webdavconfig urlbase) 
                            (WebDAVRemoteDir remotedir) fb 
                          return ()
