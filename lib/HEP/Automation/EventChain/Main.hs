@@ -29,8 +29,10 @@ import qualified Data.Traversable as T
 import qualified Data.HashMap.Lazy as HM
 import           Data.Maybe 
 import           System.Directory 
+import           System.Posix.Env 
 import           System.FilePath 
 import           System.IO
+import           System.Process
 import           Text.XML.Stream.Parse
 import           Text.XML.Stream.Render
 -- 
@@ -107,12 +109,14 @@ evchainGen mdl path pset tempdirbase urlbase remotedir pmap cross n = do
   case fst r of 
     Left err -> putStrLn err
     Right builder -> do  let builder' = ((C8.unpack bstr)++) . builder
-                         createDirectory tempdirbase 
+                         -- createDirectory tempdirbase 
                          setCurrentDirectory tempdirbase 
                          print fb 
                          writeFile fb (builder' []) 
-                         uploadFile (webdavconfig urlbase) 
-                           (WebDAVRemoteDir remotedir) fb 
+                         let davcfg = webdavconfig urlbase 
+                             rdir = WebDAVRemoteDir remotedir 
+                         uploadFile davcfg rdir fb 
+                         pythia8_run davcfg rdir fb testpythiadir testmcdir  
                          return ()
   return ()
 
@@ -160,16 +164,39 @@ dummyGen mdl path pset tempdirbase urlbase remotedir pmap cross n = do
   case fst r of 
     Left err -> putStrLn err
     Right builder -> do  let builder' = ((C8.unpack bstr)++) . builder
-                         createDirectory tempdirbase 
+                         -- -- createDirectory tempdirbase 
                          setCurrentDirectory tempdirbase 
                          print fb 
                          writeFile fb (builder' "\n</LesHouchesEvents>\n\n") 
-                         uploadFile (webdavconfig urlbase) 
-                           (WebDAVRemoteDir remotedir) fb 
+                         let davcfg = webdavconfig urlbase 
+                             rdir = WebDAVRemoteDir remotedir 
+                         uploadFile davcfg rdir fb 
+                         pythia8_run davcfg rdir fb testpythiadir testmcdir  
                          return ()
   return ()
 
+testpythiadir = "/home/wavewave/repo/ext/pythia8165/examples"
 
+testmcdir = "/home/wavewave/repo/ext/MadGraph5_v1_4_8_4/pptt"
+
+
+pythia8_run :: WebDAVConfig -> WebDAVRemoteDir 
+           -> FilePath 
+           -> FilePath 
+           -> FilePath 
+           -> IO () 
+pythia8_run davcfg rdir fp pythiadir mcdir = do 
+  -- copyFile 
+  --   (mcdir </> "Cards" </> "pythia_card_default.dat") 
+  --   (mcdir </> "Cards" </> "pythia_card.dat")
+  setCurrentDirectory pythiadir
+  fetchFile davcfg rdir fp
+  let (fn,_) = splitExtension fp
+  -- renameFile fp "unweighted_events.lhe"
+  -- putEnv $ "PDG_MASS_TBL=" ++ pythiadir </> "mass_width_2004.mc"
+  system (pythiadir </> "main25.exe " ++ fp) 
+  
+  return ()
 
 
 

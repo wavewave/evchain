@@ -74,6 +74,8 @@ Library
                    madgraph-auto >= 0.6.999 && < 0.8,
                    madgraph-auto-model >= 0.3.999 && < 0.5,
                    webdav-manager == 0.1.*,
+                   process,
+                   unix,
                    containers == 0.4.*
                    
   Exposed-Modules: 
