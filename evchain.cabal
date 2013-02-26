@@ -75,7 +75,8 @@ Library
                    process,
                    unix,
                    containers >= 0.4, 
-                   pureMD5 >= 2.1
+                   pureMD5 >= 2.1, 
+                   zlib >= 0.5
                    
   Exposed-Modules: 
                    HEP.Automation.EventChain.FileDriver

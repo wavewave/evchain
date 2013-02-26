@@ -14,12 +14,14 @@
 
 module HEP.Automation.EventChain.Main where
 
+import qualified Codec.Compression.GZip as GZ
 import           Control.Applicative
 import           Control.Monad 
 import           Control.Monad.Error 
 import           Control.Monad.State 
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C8
+import qualified Data.ByteString.Lazy.Char8 as LC8 
 import           Data.Conduit
 import           Data.Conduit.Binary 
 import qualified Data.Conduit.List as CL
@@ -74,24 +76,29 @@ getheader fp = do
   -- (Prelude.dropWhile (not.isEventStart) v)
 
 
+
+           -- -> FilePath 
+           -- -> String 
+           -- -> FilePath 
+
+{- tempdirbase urlbase remotedir -}
+
 -- | 
 evchainGen :: (Model model) => 
               model 
            -> (FilePath,FilePath,FilePath)
+           -> (String,String)
            -> ModelParam model 
-           -> FilePath 
-           -> String 
-           -> FilePath 
            -> ProcSpecMap 
            -> DCross 
            -> Int 
            -> IO () 
-evchainGen mdl path pset tempdirbase urlbase remotedir pmap cross n = do 
+evchainGen mdl path (basename,procname) pset pmap cross n = do 
   let idxcross = (mkCrossIDIdx . mkDICross) cross 
   print idxcross
   rm <- createProcessX 
-          (generateX mdl path pset pmap) 
-          (generateD mdl path pset pmap) 
+          (generateX mdl path (basename,procname) pset pmap) 
+          (generateD mdl path (basename,procname) pset pmap) 
           lheCntX lheCntD idxcross n
   let fp = fromJust (HM.lookup [] rm) 
       (_,fn) = splitFileName fp
@@ -108,7 +115,17 @@ evchainGen mdl path pset tempdirbase urlbase remotedir pmap cross n = do
   let r = runState (runErrorT (foldM action id lst)) rm2
   case fst r of 
     Left err -> putStrLn err
-    Right builder -> do  let builder' = ((C8.unpack bstr)++) . builder
+    Right builder -> do 
+      let builder' = ((C8.unpack bstr)++) . builder
+      (dir,file,wsetup) <-
+        combineX mdl path (basename,procname) pset n
+      b <- doesDirectoryExist dir
+      when (not b) (createDirectory dir)
+      (LC8.writeFile (dir</>file) . GZ.compress . LC8.pack . builder') []
+      
+      print (dir</>file)
+
+                         {-  
                          -- createDirectory tempdirbase 
                          setCurrentDirectory tempdirbase 
                          print fb 
@@ -117,8 +134,8 @@ evchainGen mdl path pset tempdirbase urlbase remotedir pmap cross n = do
                              rdir = WebDAVRemoteDir remotedir 
                          uploadFile davcfg rdir fb 
                          pythia8_run davcfg rdir fb testpythiadir testmcdir  
-                         return ()
-  return ()
+                         return () -}
+
 
 -- |
 webdavconfig :: String -> WebDAVConfig 
@@ -127,6 +144,7 @@ webdavconfig urlbase = WebDAVConfig { webdav_path_wget = "/usr/bin/wget"
                                     , webdav_baseurl = urlbase }
 
 
+{- 
 -- | 
 dummyGen :: (Model model) => 
               model 
@@ -174,6 +192,9 @@ dummyGen mdl path pset tempdirbase urlbase remotedir pmap cross n = do
                          pythia8_run davcfg rdir fb testpythiadir testmcdir  
                          return ()
   return ()
+-}
+
+{-
 
 testpythiadir = "/home/wavewave/repo/ext/pythia8165/examples"
 
@@ -199,4 +220,4 @@ pythia8_run davcfg rdir fp pythiadir mcdir = do
   return ()
 
 
-
+-}
