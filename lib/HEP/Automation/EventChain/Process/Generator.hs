@@ -138,7 +138,6 @@ getWorkSetupPart mdl (dir_sb,dir_mg5,dir_mc) pset str wname n =
     WS <$> getScriptSetup dir_sb dir_mg5 dir_mc 
        <*> pure (processSetupPart mdl str wname)  
        <*> pure (runSetupPart pset n) 
-       <*> pure (CS NoParallel) 
        <*> pure (WebDAVRemoteDir "")
 
 -- | 
@@ -153,29 +152,15 @@ getWorkSetupCombined mdl (dir_sb,dir_mg5,dir_mc) pset str wname n =
     WS <$> getScriptSetup dir_sb dir_mg5 dir_mc 
        <*> pure (processSetupCombined mdl str wname)  
        <*> pure (runSetupPart pset n)  -- for the time being  
-       <*> pure (CS NoParallel) 
        <*> pure (WebDAVRemoteDir "")
 
 
 
 -- | 
-
-     {-   model  
-      -> (FilePath,FilePath,FilePath)
-     -> ModelParam model 
-     -> String 
-     -> String  
-     -> Int  -}
-
-{-    putStrLn $ "models : " ++ modelName mdl 
-    wsetup <- getWSetup mdl (dir_sb,dir_mg5,dir_mc) pset str wname n  
--}
-
--- work mdl (dir_sb,dir_mg5,dir_mc) pset str wname n
 work :: (Model model) => WorkSetup model -> IO String 
 work wsetup   = do 
     r <- flip runReaderT wsetup . runErrorT $ do 
-      WS ssetup psetup rsetup _ _ <- ask 
+      WS ssetup psetup rsetup _ <- ask 
       let wb = mcrundir ssetup
           wn = workname psetup 
       b <- liftIO $ doesDirectoryExist (wb </> wn)
@@ -291,7 +276,7 @@ combineX mdl (dir_sb,dir_mg5,dir_mc) (basename,procname) pset n = do
     wsetup <- getWorkSetupCombined 
                 mdl (dir_sb,dir_mg5,dir_mc) pset procname basename n 
     r <- flip runReaderT wsetup . runErrorT $ do 
-      WS _ psetup rsetup _ _ <- ask 
+      WS _ psetup rsetup _ <- ask 
       let taskname = makeRunName psetup rsetup
       wdir <- getWorkDir 
       let dir = wdir </> "Events" </> taskname 
