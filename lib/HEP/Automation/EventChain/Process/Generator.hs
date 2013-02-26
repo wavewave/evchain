@@ -3,7 +3,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      : HEP.Automation.EventChain.Process.Generator
--- Copyright   : (c) 2012 Ian-Woo Kim
+-- Copyright   : (c) 2012,2013 Ian-Woo Kim
 --
 -- License     : BSD3
 -- Maintainer  : Ian-Woo Kim <ianwookim@gmail.com>
@@ -22,10 +22,12 @@ import           Control.Concurrent (threadDelay)
 import           Control.Monad.Reader 
 import           Control.Monad.Error
 import           Control.Monad.State 
+import qualified Data.ByteString.Lazy.Char8 as B
 import           Data.Conduit
 import qualified Data.Conduit.List as CL
 import           Data.Maybe 
-import           Data.Hashable (hash)
+-- import           Data.Hashable (hash)
+import           Data.Digest.Pure.MD5
 import qualified Data.HashMap.Lazy as HM 
 import           Numeric
 import           System.FilePath
@@ -208,7 +210,11 @@ generateX mdl (dir_sb,dir_mg5,dir_mc) pset pm MkC {..} n = do
     case HM.lookup Nothing pm of 
       Nothing -> fail "what? no root process in map?"
       Just str -> do 
-        let nwname = "Test"++ show (hash (str,[] :: ProcSmplIdx)) 
+        let nwname = (("Test" ++) . show . md5 . B.pack . (str ++) . show) 
+                       ([] :: ProcSmplIdx)
+        -- 
+        -- let nwname = "Test"++ show (hash (str,[] :: ProcSmplIdx)) 
+        -- 
         print nwname 
         r <- work mdl (dir_sb,dir_mg5,dir_mc) pset str nwname n 
         threadDelay 1000000
@@ -230,7 +236,10 @@ generateD mdl (dir_sb,dir_mg5,dir_mc) pset pm MkD {..} n = do
     case HM.lookup pmidx pm of 
       Nothing -> fail $ "cannot find process for pmidx = " ++ show pmidx
       Just str -> do 
-        let nwname = "Test"++ show (hash (str,pmidx))  
+        let nwname = (("Test" ++) . show . md5 . B.pack . (str ++) . show) pmidx
+        -- 
+        -- let nwname = "Test"++ show (hash (str,pmidx))  
+        -- 
         print nwname 
         r <- work mdl (dir_sb,dir_mg5,dir_mc) pset str nwname n 
         threadDelay 1000000
@@ -249,7 +258,9 @@ dummyX mdl (dir_sb,dir_mg5,dir_mc) pset pm MkC {..} n = do
     case HM.lookup Nothing pm of 
       Nothing -> fail "what? no root process in map?"
       Just str -> do 
-        let nwname = "Test"++ show (hash (str,[] :: ProcSmplIdx)) 
+        let nwname = (("Test" ++) . show . md5 . B.pack . (str ++) . show) 
+                       ([] :: ProcSmplIdx)
+        -- let nwname = "Test"++ show (hash (str,[] :: ProcSmplIdx)) 
         print nwname 
         r <- dummywork mdl (dir_sb,dir_mg5,dir_mc) pset str nwname n 
         return r 
@@ -271,7 +282,8 @@ dummyD mdl (dir_sb,dir_mg5,dir_mc) pset pm MkD {..} n = do
     case HM.lookup pmidx pm of 
       Nothing -> fail $ "cannot find process for pmidx = " ++ show pmidx
       Just str -> do 
-        let nwname = "Test"++ show (hash (str,pmidx))  
+        let nwname = (("Test" ++) . show . md5 . B.pack . (str ++) . show) pmidx
+        -- let nwname = "Test"++ show (hash (str,pmidx))  
         print nwname 
         r <- dummywork mdl (dir_sb,dir_mg5,dir_mc) pset str nwname n 
         threadDelay 1000000

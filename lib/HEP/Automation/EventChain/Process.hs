@@ -67,7 +67,7 @@ createProcessDwrk :: (Monad m) =>
 createProcessDwrk _gen _cntd MkT {..}  _ _ m = return m 
 createProcessDwrk gen cntd self@MkD {..} idxroot (pdgid',n) m 
     = case lookupid pdgid' (ptl_procs dnode) of 
-        Nothing -> fail ("createProcessDwrk : cannot find pdgid = " ++ show pdgid') --  ++ show self )
+        Nothing -> fail ("createProcessDwrk : cannot find pdgid = " ++ show pdgid') 
         Just prpdg -> do 
           let nkey = (ptl_ptlid dnode,pdgid') : idxroot
           dproc <- gen self {dnode=dnode { ptl_procs = [prpdg] }} n 
