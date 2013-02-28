@@ -42,7 +42,8 @@ import           HEP.Parser.LHEParser.Parser.Conduit
 import           HEP.Parser.LHEParser.Type
 import           HEP.Storage.WebDAV
 import           HEP.Automation.MadGraph.Model
-import           HEP.Automation.MadGraph.Model.ADMXUDD
+-- import           HEP.Automation.MadGraph.Model.ADMXUDD
+import           HEP.Automation.MadGraph.SetupType
 -- 
 import           HEP.Automation.EventChain.LHEConn
 import           HEP.Automation.EventChain.FileDriver
@@ -86,20 +87,21 @@ getheader fp = do
 -- | 
 evchainGen :: (Model model) => 
               model 
-           -> (FilePath,FilePath,FilePath)
+           -- -> (FilePath,FilePath,FilePath)
+           -> ScriptSetup
            -> (String,String)
            -> ModelParam model 
            -> ProcSpecMap 
            -> DCross 
-           -> Int 
+           -> MGRunSetup 
            -> IO () 
-evchainGen mdl path (basename,procname) pset pmap cross n = do 
+evchainGen mdl path (basename,procname) pset pmap cross mgrs = do 
   let idxcross = (mkCrossIDIdx . mkDICross) cross 
   print idxcross
   rm <- createProcessX 
           (generateX mdl path (basename,procname) pset pmap) 
           (generateD mdl path (basename,procname) pset pmap) 
-          lheCntX lheCntD idxcross n
+          lheCntX lheCntD idxcross (mgrs_numevent mgrs) 
   let fp = fromJust (HM.lookup [] rm) 
       (_,fn) = splitFileName fp
       (fb,_) = splitExtension fn 
@@ -111,14 +113,14 @@ evchainGen mdl path (basename,procname) pset pmap cross n = do
         lhev <- accumTotalEvent <$> matchFullCross idxcross 
         let output = lheFormatOutput lhev ++ endl 
         return (acc . (output++))
-  let lst = replicate n ()
+  let lst = replicate (mgrs_numevent mgrs)  ()
   let r = runState (runErrorT (foldM action id lst)) rm2
   case fst r of 
     Left err -> putStrLn err
     Right builder -> do 
       let builder' = ((C8.unpack bstr)++) . builder
       (dir,file,wsetup) <-
-        combineX mdl path (basename,procname) pset n
+        combineX mdl path (basename,procname) pset (mgrs_numevent mgrs)
       b <- doesDirectoryExist dir
       when (not b) (createDirectory dir)
       (LC8.writeFile (dir</>file) . GZ.compress . LC8.pack . builder') []

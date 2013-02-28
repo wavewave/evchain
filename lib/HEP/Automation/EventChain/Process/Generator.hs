@@ -36,7 +36,7 @@ import           System.FilePath
 import           System.IO
 -- from hep-platform packages 
 import           HEP.Automation.MadGraph.Model
-import           HEP.Automation.MadGraph.Model.ADMXUDD
+-- import           HEP.Automation.MadGraph.Model.ADMXUDD
 import           HEP.Automation.MadGraph.Machine
 import           HEP.Automation.MadGraph.SetupType
 import           HEP.Automation.MadGraph.UserCut
@@ -128,31 +128,43 @@ runSetupPart pset n =
 
 -- | 
 getWorkSetupPart :: model 
-              -> (FilePath,FilePath,FilePath)
+              -- -> (FilePath,FilePath,FilePath)
+              -> ScriptSetup 
               -> ModelParam model  
               -> String 
               -> String 
               -> Int 
-              -> IO (WorkSetup model)
-getWorkSetupPart mdl (dir_sb,dir_mg5,dir_mc) pset str wname n = 
-    WS <$> getScriptSetup dir_sb dir_mg5 dir_mc 
+              -> WorkSetup model
+getWorkSetupPart mdl ssetup pset str wname n = 
+    WS ssetup 
+       (processSetupPart mdl str wname) 
+       (runSetupPart pset n) 
+       (WebDAVRemoteDir "")
+
+     {- <$> getScriptSetup dir_sb dir_mg5 dir_mc 
        <*> pure (processSetupPart mdl str wname)  
        <*> pure (runSetupPart pset n) 
-       <*> pure (WebDAVRemoteDir "")
-
+       <*> pure (WebDAVRemoteDir "") -}
+ 
 -- | 
 getWorkSetupCombined :: model 
-                     -> (FilePath,FilePath,FilePath)
+                     -- -> (FilePath,FilePath,FilePath)
+                     -> ScriptSetup 
                      -> ModelParam model  
                      -> String    -- ^ process name 
                      -> String    -- ^ directory name 
                      -> Int 
-                     -> IO (WorkSetup model)
-getWorkSetupCombined mdl (dir_sb,dir_mg5,dir_mc) pset str wname n = 
-    WS <$> getScriptSetup dir_sb dir_mg5 dir_mc 
+                     -> WorkSetup model
+getWorkSetupCombined mdl ssetup pset str wname n = 
+  WS ssetup 
+     (processSetupCombined mdl str wname)
+     (runSetupPart pset n)
+     (WebDAVRemoteDir "")
+
+{-    WS <$> getScriptSetup dir_sb dir_mg5 dir_mc 
        <*> pure (processSetupCombined mdl str wname)  
        <*> pure (runSetupPart pset n)  -- for the time being  
-       <*> pure (WebDAVRemoteDir "")
+       <*> pure (WebDAVRemoteDir "") -}
 
 
 
@@ -222,34 +234,34 @@ cnt1EvtD i decay (Counter incomingm outgoingm) ev@LHEvent {..} = do
 -- | 
 generateX :: (Model model) => 
              model 
-          -> (FilePath,FilePath,FilePath) -- ^ directories 
+          {- -> (FilePath,FilePath,FilePath) -- ^ directories  -}
+          -> ScriptSetup 
           -> (String,String)              -- ^ (base madgraph dir name, resultant process name) 
           -> ModelParam model             -- ^ model parameters 
           -> ProcSpecMap                  -- ^ 
           -> CrossID ProcSmplIdx 
           -> Int 
           -> IO FilePath  
-generateX mdl (dir_sb,dir_mg5,dir_mc) (basename,procname) pset pm MkC {..} n = do 
+generateX mdl ssetup (basename,procname) pset pm MkC {..} n = do 
     case HM.lookup Nothing pm of 
       Nothing -> fail "what? no root process in map?"
       Just str -> do 
         let nwname = basename
         print nwname 
-        work =<< getWorkSetupPart mdl (dir_sb,dir_mg5,dir_mc) pset str nwname n  
-        -- r <- work mdl (dir_sb,dir_mg5,dir_mc) pset str nwname n 
-        -- return r 
+        work (getWorkSetupPart mdl ssetup pset str nwname n)
+
 
 -- | Single PDGID in dnode is assumed. 
 generateD :: (Model model) => 
              model 
-          -> (FilePath,FilePath,FilePath)
+          -> ScriptSetup 
           -> (String,String)              -- ^ (base madgraph dir name, resultant process name) 
           -> ModelParam model             -- ^ model parameter 
           -> ProcSpecMap 
           -> DecayID ProcSmplIdx 
           -> Int 
           -> IO FilePath
-generateD mdl (dir_sb,dir_mg5,dir_mc) (basename,procname) pset pm MkD {..} n = do 
+generateD mdl ssetup (basename,procname) pset pm MkD {..} n = do 
     let psidx = (proc_procid . head . ptl_procs) dnode 
         pdgid' = (proc_pdgid . head . ptl_procs ) dnode
         pmidx  = mkPMIdx psidx pdgid' 
@@ -258,23 +270,21 @@ generateD mdl (dir_sb,dir_mg5,dir_mc) (basename,procname) pset pm MkD {..} n = d
       Just str -> do 
         let nwname = (((basename++"_") ++).show.md5.B.pack.(str ++).show) pmidx
         print nwname 
-        work =<< getWorkSetupPart mdl (dir_sb,dir_mg5,dir_mc) pset str nwname n  
+        work (getWorkSetupPart mdl ssetup pset str nwname n)
 
-        -- r <- work mdl (dir_sb,dir_mg5,dir_mc) pset str nwname n 
-        -- return r   
 
 combineX :: (Model model) => 
              model 
-          -> (FilePath,FilePath,FilePath) -- ^ directories 
+          -> ScriptSetup 
           -> (String,String)              -- ^ (base madgraph dir name, resultant process name) 
           -> ModelParam model             -- ^ model parameters 
           -> Int 
           -> IO (FilePath,FilePath,WorkSetup model)
-combineX mdl (dir_sb,dir_mg5,dir_mc) (basename,procname) pset n = do 
+combineX mdl ssetup (basename,procname) pset n = do 
     let nwname = basename
     print nwname 
-    wsetup <- getWorkSetupCombined 
-                mdl (dir_sb,dir_mg5,dir_mc) pset procname basename n 
+    let wsetup =  getWorkSetupCombined 
+                    mdl ssetup pset procname basename n 
     r <- flip runReaderT wsetup . runErrorT $ do 
       WS _ psetup rsetup _ <- ask 
       let taskname = makeRunName psetup rsetup
