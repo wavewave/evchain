@@ -120,7 +120,7 @@ evchainGen mdl path (basename,procname) pset pmap cross mgrs = do
     Right builder -> do 
       let builder' = ((C8.unpack bstr)++) . builder
       (dir,file,wsetup) <-
-        combineX mdl path (basename,procname) pset (mgrs_numevent mgrs)
+        combineX mdl path (basename,procname) pset mgrs
       b <- doesDirectoryExist dir
       when (not b) (createDirectory dir)
       (LC8.writeFile (dir</>file) . GZ.compress . LC8.pack . builder') []

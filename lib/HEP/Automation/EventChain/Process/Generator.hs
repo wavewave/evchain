@@ -151,14 +151,14 @@ getWorkSetupCombined :: model
                      -- -> (FilePath,FilePath,FilePath)
                      -> ScriptSetup 
                      -> ModelParam model  
-                     -> String    -- ^ process name 
-                     -> String    -- ^ directory name 
-                     -> Int 
+                     -> (String,String) -- ^ (directory name, process name)
+                     -> MGRunSetup 
+                     -- -> Int 
                      -> WorkSetup model
-getWorkSetupCombined mdl ssetup pset str wname n = 
+getWorkSetupCombined mdl ssetup pset (wname,str) mgrs = 
   WS ssetup 
      (processSetupCombined mdl str wname)
-     (runSetupPart pset n)
+     (mGRunSetup2RunSetup pset mgrs) -- (runSetupPart pset n)
      (WebDAVRemoteDir "")
 
 {-    WS <$> getScriptSetup dir_sb dir_mg5 dir_mc 
@@ -278,13 +278,13 @@ combineX :: (Model model) =>
           -> ScriptSetup 
           -> (String,String)              -- ^ (base madgraph dir name, resultant process name) 
           -> ModelParam model             -- ^ model parameters 
-          -> Int 
+          -> MGRunSetup
           -> IO (FilePath,FilePath,WorkSetup model)
-combineX mdl ssetup (basename,procname) pset n = do 
+combineX mdl ssetup (basename,procname) pset mgrs = do 
     let nwname = basename
     print nwname 
     let wsetup =  getWorkSetupCombined 
-                    mdl ssetup pset procname basename n 
+                    mdl ssetup pset (basename,procname) mgrs 
     r <- flip runReaderT wsetup . runErrorT $ do 
       WS _ psetup rsetup _ <- ask 
       let taskname = makeRunName psetup rsetup
