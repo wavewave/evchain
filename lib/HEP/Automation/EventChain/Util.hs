@@ -32,7 +32,8 @@ import           HEP.Util.Functions
 import           HEP.Automation.EventChain.Type.Match
 import           HEP.Automation.EventChain.Type.Skeleton
 import           HEP.Automation.EventChain.Type.Spec
-
+-- 
+import Debug.Trace
 
 
 -- | 
@@ -46,8 +47,7 @@ idChange r a = a + r
 -- |
 colChangeFunc :: Int -> (Maybe PtlInfo,PtlInfo) -> Int -> Int 
 colChangeFunc offset (moptl,nptl) 0 = 0 
-colChangeFunc offset (Nothing,nptl) a = a --   if a == col1 || a == col2 then a else a + offset  
---   where (col1,col2) = icolup nptl 
+colChangeFunc offset (Nothing,nptl) a = a  
 colChangeFunc offset (Just optl,nptl) a 
   | a == col1 = fst (icolup optl)  
   | a == col2 = snd (icolup optl)  
@@ -58,7 +58,8 @@ colChangeFunc offset (Just optl,nptl) a
 colChangeOffset :: (Maybe PtlInfo,PtlInfo) -> Int 
 colChangeOffset (Nothing,_) = 0 
 colChangeOffset (Just _,nptl) = let r | col1 /=0 && col2 /= 0 = 2 
-                                      | col1 /=0 && col2 == 0 = 1  
+                                      | col1 /=0 && col2 == 0 = 1
+                                      | col1 ==0 && col2 /= 0 = 1  
                                       | otherwise = 0  
                                in r 
   where (col1,col2) = icolup nptl 
@@ -67,7 +68,10 @@ colChangeOffset (Just _,nptl) = let r | col1 /=0 && col2 /= 0 = 2
 colChangePair :: Int 
               -> (Maybe PtlInfo,PtlInfo) 
               -> (Int, Int -> Int)
-colChangePair offset ptls = (colChangeOffset ptls, colChangeFunc offset ptls)
+colChangePair offset ptls = 
+  trace ("inside colChangePair" ++ show offset)
+    (colChangeOffset ptls, colChangeFunc offset ptls)
+  
 
 -- | 
 adjustIds :: (Int -> Int) -> (Int->Int) -> PtlInfo -> PtlInfo
@@ -154,44 +158,5 @@ findPTripletUsingPtlIDFrmOutPtls i ev =
         pdg = idup pinfo 
     in PTriplet i pdg pinfo 
 
-
-{-
-
-
--- |
-getParticleIDFromAnyNode :: Either ParticleID (ParticleID,p) -> ParticleID 
-getParticleIDFromAnyNode = either id fst 
-
--- | 
-printIter = CL.mapM_ (liftIO . prtfn) 
-  where prtfn x = do 
-          putStrLn "--------------"
-          print x 
-          putStrLn "=============="
-
--- | obsolete
-
-colChange :: Int -> Int -> Int 
-colChange r 0 = 0 
-colChange r a = a + r 
-
-
--- | 
-
--- 
--- spinAdj :: Double -> PtlInfo -> PtlInfo 
--- spinAdj spn pinfo = pinfo { spinup = spn * spinup pinfo } 
-
--- | 
-
-{-
-adjustMomSpin :: (PtlInfo,PtlInfo) -> PtlInfo -> PtlInfo
-adjustMomSpin (opinfo,rpinfo) = spinAdj spn . boostBack mom
-  where mom = pupTo4mom . pup $ opinfo 
-        spn = spinup opinfo * spinup rpinfo 
--}
-
-
--}
 
 

@@ -18,7 +18,6 @@ module HEP.Automation.EventChain.Process.Generator where
 
 -- from other packages from others
 import           Control.Applicative 
--- import           Control.Concurrent (threadDelay)
 import           Control.Monad 
 import           Control.Monad.Reader 
 import           Control.Monad.Error
@@ -27,7 +26,6 @@ import qualified Data.ByteString.Lazy.Char8 as B
 import           Data.Conduit
 import qualified Data.Conduit.List as CL
 import           Data.Maybe 
--- import           Data.Hashable (hash)
 import           Data.Digest.Pure.MD5
 import qualified Data.HashMap.Lazy as HM 
 import           Numeric
@@ -36,7 +34,6 @@ import           System.FilePath
 import           System.IO
 -- from hep-platform packages 
 import           HEP.Automation.MadGraph.Model
--- import           HEP.Automation.MadGraph.Model.ADMXUDD
 import           HEP.Automation.MadGraph.Machine
 import           HEP.Automation.MadGraph.SetupType
 import           HEP.Automation.MadGraph.UserCut
@@ -45,9 +42,9 @@ import           HEP.Automation.MadGraph.Run
 import           HEP.Storage.WebDAV
 import           HEP.Parser.LHEParser.Type
 -- from this package 
-import           HEP.Automation.EventChain.FileDriver 
-import           HEP.Automation.EventChain.Process
+import           HEP.Automation.EventChain.File 
 import           HEP.Automation.EventChain.Match 
+import           HEP.Automation.EventChain.Process
 import           HEP.Automation.EventChain.Type.Match 
 import           HEP.Automation.EventChain.Type.Process
 import           HEP.Automation.EventChain.Type.Skeleton

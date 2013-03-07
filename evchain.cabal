@@ -29,25 +29,25 @@ data-files:     test/resources/*.lhe
 --                   webdav-manager >= 0.1,
 --                   evchain
 
-Executable evchain
-  Main-is: evchain.hs
-  hs-source-dirs: exe
-  ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
-  ghc-prof-options: -caf-all -auto-all
-  Build-Depends: 
-                   base>4, mtl>2, directory, filepath,
-                   cmdargs, 
-                   containers >= 0.4,
-                   conduit >= 0.5 && < 1,
-                   conduit-util >= 0.2.0.999,
-                   HEPUtil,
-                   LHEParser,
-                   random >= 1.0, 
-                   unordered-containers >= 0.2,
-                   madgraph-auto >= 0.6.999 && < 0.8, 
-                   madgraph-auto-model >= 0.3.999 && < 0.5,
-                   webdav-manager >= 0.1,
-                   evchain
+-- Executable evchain
+--  Main-is: evchain.hs
+--  hs-source-dirs: exe
+--  ghc-options: 	-Wall -O2 -threaded -funbox-strict-fields -fno-warn-unused-do-bind
+--  ghc-prof-options: -caf-all -auto-all
+--  Build-Depends: 
+--                   base>4, mtl>2, directory, filepath,
+--                   cmdargs, 
+--                   containers >= 0.4,
+--                   conduit >= 0.5 && < 1,
+--                   conduit-util >= 0.2.0.999,
+--                   HEPUtil,
+--                   LHEParser,
+--                   random >= 1.0, 
+--                   unordered-containers >= 0.2,
+--                   madgraph-auto >= 0.6.999 && < 0.8, 
+--                   madgraph-auto-model >= 0.3.999 && < 0.5,
+--                   webdav-manager >= 0.1,
+--                   evchain
 
 Library
   hs-source-dirs: lib
@@ -79,9 +79,9 @@ Library
                    zlib >= 0.5
                    
   Exposed-Modules: 
-                   HEP.Automation.EventChain.FileDriver
+                   HEP.Automation.EventChain.Driver 
+                   HEP.Automation.EventChain.File
                    HEP.Automation.EventChain.LHEConn
-                   HEP.Automation.EventChain.Main 
                    HEP.Automation.EventChain.Match
                    HEP.Automation.EventChain.Print
                    HEP.Automation.EventChain.Process

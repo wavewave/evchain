@@ -1,6 +1,6 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      : HEP.Automation.EventChain.Main
+-- Module      : HEP.Automation.EventChain.Driver
 -- Copyright   : (c) 2012 Ian-Woo Kim
 --
 -- License     : BSD3
@@ -12,7 +12,7 @@
 -- 
 -----------------------------------------------------------------------------
 
-module HEP.Automation.EventChain.Main where
+module HEP.Automation.EventChain.Driver where
 
 import qualified Codec.Compression.GZip as GZ
 import           Control.Applicative
@@ -37,16 +37,15 @@ import           System.IO
 import           System.Process
 import           Text.XML.Stream.Parse
 import           Text.XML.Stream.Render
--- 
+-- from hep-platform 
+import           HEP.Automation.MadGraph.Model
+import           HEP.Automation.MadGraph.SetupType
 import           HEP.Parser.LHEParser.Parser.Conduit
 import           HEP.Parser.LHEParser.Type
 import           HEP.Storage.WebDAV
-import           HEP.Automation.MadGraph.Model
--- import           HEP.Automation.MadGraph.Model.ADMXUDD
-import           HEP.Automation.MadGraph.SetupType
--- 
+-- from this package 
+import           HEP.Automation.EventChain.File
 import           HEP.Automation.EventChain.LHEConn
-import           HEP.Automation.EventChain.FileDriver
 import           HEP.Automation.EventChain.Print 
 import           HEP.Automation.EventChain.Process
 import           HEP.Automation.EventChain.Process.Generator
@@ -68,26 +67,14 @@ getheader :: FilePath -> IO B.ByteString
 getheader fp = do 
   temph <- openFile fp ReadMode  
   v <- sourceHandle temph =$= ungzip =$= parseBytes def $$ CL.consume
-  -- =$= CU.dropWhile (not.isEventStart) $$ CL.consume
   hClose temph 
   let r = Prelude.takeWhile (not.isEventStart) v
-  -- mapM_ (putStrLn.show) r 
   bstrs <- CL.sourceList r =$= renderBytes def $$ CL.consume 
   return (B.concat bstrs)
-  -- (Prelude.dropWhile (not.isEventStart) v)
 
-
-
-           -- -> FilePath 
-           -- -> String 
-           -- -> FilePath 
-
-{- tempdirbase urlbase remotedir -}
-
--- | 
+-- | main driver for evchain program
 evchainGen :: (Model model) => 
               model 
-           -- -> (FilePath,FilePath,FilePath)
            -> ScriptSetup
            -> (String,String)
            -> ModelParam model 
@@ -105,9 +92,8 @@ evchainGen mdl path (basename,procname) pset pmap cross mgrs = do
   let fp = fromJust (HM.lookup [] rm) 
       (_,fn) = splitFileName fp
       (fb,_) = splitExtension fn 
-  print fn 
+  putStrLn ("start generate in  " ++ fn)
   bstr <- getheader fp 
-
   rm2 <- makeLHEProcessMap rm 
   let action acc () = do 
         lhev <- accumTotalEvent <$> matchFullCross idxcross 
@@ -124,19 +110,7 @@ evchainGen mdl path (basename,procname) pset pmap cross mgrs = do
       b <- doesDirectoryExist dir
       when (not b) (createDirectory dir)
       (LC8.writeFile (dir</>file) . GZ.compress . LC8.pack . builder') []
-      
-      print (dir</>file)
-
-                         {-  
-                         -- createDirectory tempdirbase 
-                         setCurrentDirectory tempdirbase 
-                         print fb 
-                         writeFile fb (builder' []) 
-                         let davcfg = webdavconfig urlbase 
-                             rdir = WebDAVRemoteDir remotedir 
-                         uploadFile davcfg rdir fb 
-                         pythia8_run davcfg rdir fb testpythiadir testmcdir  
-                         return () -}
+      putStrLn $ "The resultant file " ++ (dir</>file) ++ " is generated."
 
 
 -- |
