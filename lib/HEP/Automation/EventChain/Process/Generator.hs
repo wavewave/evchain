@@ -21,14 +21,11 @@ import           Control.Applicative
 import           Control.Monad 
 import           Control.Monad.Reader 
 import           Control.Monad.Error
-import           Control.Monad.State 
 import qualified Data.ByteString.Lazy.Char8 as B
 import           Data.Conduit
 import qualified Data.Conduit.List as CL
-import           Data.Maybe 
 import           Data.Digest.Pure.MD5
 import qualified Data.HashMap.Lazy as HM 
-import           Numeric
 import           System.Directory 
 import           System.FilePath
 import           System.IO
@@ -92,18 +89,6 @@ processSetupCombined mdl pname wname = PS { model = mdl
                                           , workname = wname 
                                           }
 
-{-
--- | 
-ucut :: UserCut 
-ucut = UserCut { 
-    uc_metcut = 15.0
-  , uc_etacutlep = 2.7
-  , uc_etcutlep = 18.0 
-  , uc_etacutjet = 2.7
-  , uc_etcutjet = 15.0 
-}
--}
-
 -- | 
 runSetupPart :: ModelParam model -> Int -> RunSetup model 
 runSetupPart pset n = 
@@ -125,7 +110,6 @@ runSetupPart pset n =
 
 -- | 
 getWorkSetupPart :: model 
-              -- -> (FilePath,FilePath,FilePath)
               -> ScriptSetup 
               -> ModelParam model  
               -> String 
@@ -138,31 +122,19 @@ getWorkSetupPart mdl ssetup pset str wname n =
        (runSetupPart pset n) 
        (WebDAVRemoteDir "")
 
-     {- <$> getScriptSetup dir_sb dir_mg5 dir_mc 
-       <*> pure (processSetupPart mdl str wname)  
-       <*> pure (runSetupPart pset n) 
-       <*> pure (WebDAVRemoteDir "") -}
  
 -- | 
 getWorkSetupCombined :: model 
-                     -- -> (FilePath,FilePath,FilePath)
                      -> ScriptSetup 
                      -> ModelParam model  
                      -> (String,String) -- ^ (directory name, process name)
                      -> MGRunSetup 
-                     -- -> Int 
                      -> WorkSetup model
 getWorkSetupCombined mdl ssetup pset (wname,str) mgrs = 
   WS ssetup 
      (processSetupCombined mdl str wname)
-     (mGRunSetup2RunSetup pset mgrs) -- (runSetupPart pset n)
+     (mGRunSetup2RunSetup pset mgrs) 
      (WebDAVRemoteDir "")
-
-{-    WS <$> getScriptSetup dir_sb dir_mg5 dir_mc 
-       <*> pure (processSetupCombined mdl str wname)  
-       <*> pure (runSetupPart pset n)  -- for the time being  
-       <*> pure (WebDAVRemoteDir "") -}
-
 
 
 -- | 
@@ -189,9 +161,8 @@ work wsetup   = do
 lheCntX :: (Show p) => CrossID p -> FilePath -> IO Counter 
 lheCntX cross fp = do 
     h <- openFile fp ReadMode
-    r <- evtsHandle True h =$= CL.map fromJust 
-          $$ CL.foldM (cnt1EvtX cross) (Counter HM.empty HM.empty)   
-    return r
+    evtsHandle True h $$ CL.foldM (cnt1EvtX cross) (Counter HM.empty HM.empty)   
+
 
 
 -- |
@@ -211,9 +182,8 @@ cnt1EvtX cross (Counter incomingm outgoingm) ev@LHEvent {..}  = do
 lheCntD :: (Show p) => PDGID -> DecayID p -> FilePath -> IO Counter
 lheCntD i decay fp = do 
     h <- openFile fp ReadMode
-    r <- evtsHandle True h =$= CL.map fromJust 
-          $$ CL.foldM (cnt1EvtD i decay) (Counter HM.empty HM.empty)   
-    return r
+    evtsHandle True h $$ 
+      CL.foldM (cnt1EvtD i decay) (Counter HM.empty HM.empty)   
 
 -- | 
 cnt1EvtD :: (Show p) => PDGID -> DecayID p -> Counter -> LHEvent -> IO Counter 
@@ -231,7 +201,6 @@ cnt1EvtD i decay (Counter incomingm outgoingm) ev@LHEvent {..} = do
 -- | 
 generateX :: (Model model) => 
              model 
-          {- -> (FilePath,FilePath,FilePath) -- ^ directories  -}
           -> ScriptSetup 
           -> (String,String)              -- ^ (base madgraph dir name, resultant process name) 
           -> ModelParam model             -- ^ model parameters 
@@ -249,6 +218,7 @@ generateX mdl ssetup (basename,procname) pset pm MkC {..} n = do
 
 
 -- | Single PDGID in dnode is assumed. 
+--   (why non-exhautive pattern here?) 
 generateD :: (Model model) => 
              model 
           -> ScriptSetup 
@@ -294,64 +264,3 @@ combineX mdl ssetup (basename,procname) pset mgrs = do
       Right str -> return str 
 
 
-{-
--- | 
-dummyX :: (Model model) => 
-          model 
-          -> (FilePath,FilePath,FilePath) 
-          -> ModelParam model  
-          -> ProcSpecMap 
-          -> CrossID ProcSmplIdx 
-          -> Int 
-          -> IO FilePath  
-dummyX mdl (dir_sb,dir_mg5,dir_mc) pset pm MkC {..} n = do 
-    case HM.lookup Nothing pm of 
-      Nothing -> fail "what? no root process in map?"
-      Just str -> do 
-        let nwname = (("Test" ++) . show . md5 . B.pack . (str ++) . show) 
-                       ([] :: ProcSmplIdx)
-        -- let nwname = "Test"++ show (hash (str,[] :: ProcSmplIdx)) 
-        print nwname 
-        r <- dummywork mdl (dir_sb,dir_mg5,dir_mc) pset str nwname n 
-        return r 
-
-
--- | Single PDGID in dnode is assumed. 
-dummyD :: (Model model) => 
-             model 
-          -> (FilePath,FilePath,FilePath)
-          -> ModelParam model  
-          -> ProcSpecMap 
-          -> DecayID ProcSmplIdx 
-          -> Int 
-          -> IO FilePath
-dummyD mdl (dir_sb,dir_mg5,dir_mc) pset pm MkD {..} n = do 
-    let psidx = (proc_procid . head . ptl_procs) dnode 
-        pdgid' = (proc_pdgid . head . ptl_procs ) dnode
-        pmidx  = mkPMIdx psidx pdgid' 
-    case HM.lookup pmidx pm of 
-      Nothing -> fail $ "cannot find process for pmidx = " ++ show pmidx
-      Just str -> do 
-        let nwname = (("Test" ++) . show . md5 . B.pack . (str ++) . show) pmidx
-        -- let nwname = "Test"++ show (hash (str,pmidx))  
-        print nwname 
-        r <- dummywork mdl (dir_sb,dir_mg5,dir_mc) pset str nwname n 
-        -- threadDelay 1000000
-        return r   
--- | 
-dummywork :: (Model model) => 
-        model  
-     -> (FilePath,FilePath,FilePath)
-     -> ModelParam model 
-     -> String 
-     -> String 
-     -> Int 
-     -> IO String 
-dummywork mdl (dir_sb,dir_mg5,dir_mc) pset str wname n  = do 
-    putStrLn $ "models : " ++ modelName mdl 
-    WS ssetup psetup rsetup _ _ <- getWSetup mdl (dir_sb,dir_mg5,dir_mc) pset str wname n  
-    let wdir = mcrundir ssetup </> workname psetup
-        taskname = makeRunName psetup rsetup  
-        fname = wdir </> "Events" </> taskname </> taskname ++ "_unweighted_events.lhe.gz"
-    return fname 
--}
