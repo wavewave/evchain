@@ -39,8 +39,8 @@ import           HEP.Automation.MadGraph.SetupType
 import           HEP.Automation.MadGraph.UserCut
 import           HEP.Automation.MadGraph.Util 
 import           HEP.Automation.MadGraph.Run
+import           HEP.Parser.LHE.Type
 import           HEP.Storage.WebDAV
-import           HEP.Parser.LHEParser.Type
 -- from this package 
 import           HEP.Automation.EventChain.File 
 import           HEP.Automation.EventChain.Match 

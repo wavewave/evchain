@@ -27,9 +27,9 @@ import           System.IO
 import           Text.XML.Stream.Parse
 -- from other hep-platform packages 
 import           Data.Conduit.Util.Count
+import           HEP.Parser.LHE.Conduit
+import           HEP.Parser.LHE.Type
 import           HEP.Util.Count 
-import           HEP.Parser.LHEParser.Type
-import           HEP.Parser.LHEParser.Parser.Conduit
 -- from this package
 import           HEP.Automation.EventChain.Type.Process
 

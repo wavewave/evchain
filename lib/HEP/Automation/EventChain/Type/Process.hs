@@ -20,7 +20,7 @@ module HEP.Automation.EventChain.Type.Process where
 -- import           Data.Hashable 
 import qualified Data.HashMap.Lazy as HM
 
-import           HEP.Parser.LHEParser.Type 
+import           HEP.Parser.LHE.Type 
 
 import           HEP.Automation.EventChain.Type.Spec 
 

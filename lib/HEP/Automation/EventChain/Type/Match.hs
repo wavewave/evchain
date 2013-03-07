@@ -22,7 +22,7 @@ import           Control.Monad.Error
 import           Control.Monad.State
 import qualified Data.Map as M
 -- from other hep-platform package
-import           HEP.Parser.LHEParser.Type (PtlInfo,PtlID,PDGID,LHEvent(..),EventInfo)
+import           HEP.Parser.LHE.Type (PtlInfo,PtlID,PDGID,LHEvent(..),EventInfo)
 import           HEP.Util.Functions
 -- from this package
 import           HEP.Automation.EventChain.Type.Process

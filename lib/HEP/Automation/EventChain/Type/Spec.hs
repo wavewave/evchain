@@ -19,7 +19,7 @@
 module HEP.Automation.EventChain.Type.Spec where
 
 -- from other hep-platform packages 
-import           HEP.Parser.LHEParser.Type (PDGID)
+import           HEP.Parser.LHE.Type (PDGID)
 -- from this package
 import           HEP.Automation.EventChain.Type.Skeleton
 -- import           HEP.Automation.EventChain.Type.Process

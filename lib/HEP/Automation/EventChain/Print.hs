@@ -1,7 +1,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      : HEP.Automation.EventChain.Print
--- Copyright   : (c) 2012 Ian-Woo Kim
+-- Copyright   : (c) 2012,2013 Ian-Woo Kim
 --
 -- License     : BSD3
 -- Maintainer  : Ian-Woo Kim <ianwookim@gmail.com>
@@ -18,7 +18,7 @@ module HEP.Automation.EventChain.Print where
 import Data.List (intercalate)
 import Text.Printf
 -- from hep-platform 
-import HEP.Parser.LHEParser.Type
+import HEP.Parser.LHE.Type
 -- this package
 -- import HEP.Automation.MadGraph.EventChain.Type
 

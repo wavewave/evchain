@@ -20,7 +20,7 @@ module HEP.Automation.EventChain.Process where
 import           Data.Foldable (foldrM)
 import qualified Data.HashMap.Lazy as HM
 -- from other hep-platform packages 
-import           HEP.Parser.LHEParser.Type
+import           HEP.Parser.LHE.Type
 -- from this package
 import           HEP.Automation.EventChain.Type.Process
 import           HEP.Automation.EventChain.Type.Skeleton

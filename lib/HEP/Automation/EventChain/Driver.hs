@@ -40,8 +40,8 @@ import           Text.XML.Stream.Render
 -- from hep-platform 
 import           HEP.Automation.MadGraph.Model
 import           HEP.Automation.MadGraph.SetupType
-import           HEP.Parser.LHEParser.Parser.Conduit
-import           HEP.Parser.LHEParser.Type
+import           HEP.Parser.LHE.Conduit
+import           HEP.Parser.LHE.Type
 import           HEP.Storage.WebDAV
 -- from this package 
 import           HEP.Automation.EventChain.File

@@ -25,7 +25,7 @@ import           Data.Vector.Storable ((!))
 import           Numeric.LinearAlgebra (scale,(<>),(<.>))
 import           System.IO
 -- from hep-platfrom
-import           HEP.Parser.LHEParser.Type 
+import           HEP.Parser.LHE.Type 
 import           HEP.Util.Count 
 import           HEP.Util.Functions
 -- from this package

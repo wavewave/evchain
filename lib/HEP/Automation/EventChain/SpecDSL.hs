@@ -18,7 +18,7 @@
 module HEP.Automation.EventChain.SpecDSL where
 
 -- from other hep-platform package
-import HEP.Parser.LHEParser.Type (PDGID)
+import HEP.Parser.LHE.Type (PDGID)
 -- from this package
 import HEP.Automation.EventChain.Type.Process
 import HEP.Automation.EventChain.Type.Skeleton

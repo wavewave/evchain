@@ -32,7 +32,7 @@ import           Data.Vector.Storable ((!))
 import qualified Numeric.LinearAlgebra as NL
 import           System.IO
 -- other package of mine
-import           HEP.Parser.LHEParser.Type
+import           HEP.Parser.LHE.Type
 import           HEP.Util.Functions
 -- this package
 -- import           HEP.Automation.EventChain.Print
@@ -178,25 +178,11 @@ accumTotalEvent g =
               maxicol = maximum icols
               minicol = minimum icols 
           (stid,stcol,rmap,stmm) <- get
-          -- let mopinfo = fmap (pt_pinfo.snd) mmom 
           let rpinfo = (snd . head . mlhev_incoming ) mev
-          --     (coloffset,colfunc) = colChangePair stcol (mopinfo,rpinfo) 
-          -- let idfunc = adjustIds (idChange stid) colfunc
-
-
           (change,coloffset,rmap1) <- maybe 
                                         (return (id,0,rmap))  
                                         (getAdjustFunc4IDMom lrot rpinfo) 
                                         mmom
---                   flipMaybe mmom (id,rmap) 
---                       (\(procid,PTriplet pid pcode opinfo) -> 
---                           let oid = idChange stid (ptlid rpinfo)
---                               nid = maybe (error ("herehere\n" ++ show (procid,pid) ++ "\n" ++ show stmm)) id (M.lookup (procid,pid) stmm)
---                               rmap1 = IM.adjust unstabilize nid rmap
---                               midadj = motherAdjustID (oid,nid) 
---                          in (adjustMom lrot . adjustSpin (opinfo,rpinfo) . midadj , rmap1) )
-
-
           let (ri,ro,rm,stmm') = adjustPtlInfosInMLHEvent (change,snd) mev stmm
               kri = map ((,) <$> ptlid <*> id) ri
               kro = map ((,) <$> ptlid <*> id) ro
