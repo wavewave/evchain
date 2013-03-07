@@ -3,7 +3,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      : HEP.Automation.EventChain.LHEConn
--- Copyright   : (c) 2012 Ian-Woo Kim
+-- Copyright   : (c) 2012,2013 Ian-Woo Kim
 --
 -- License     : BSD3
 -- Maintainer  : Ian-Woo Kim <ianwookim@gmail.com>
@@ -44,6 +44,7 @@ import           HEP.Automation.EventChain.Type.Spec
 import           HEP.Automation.EventChain.Util
 -- prelude
 import           Prelude hiding (mapM,foldr)
+import Debug.Trace
 
 -- | 
 type Status = Int
@@ -137,6 +138,24 @@ adjustPtlInfosInMLHEvent (f,g) mev mm = (map snd inc,map snd out,int,mm'')
                     . ( (,) <$> either id fst . fst <*> snd )
 
 
+
+-- | 
+getAdjustFunc4IDMom :: LorentzRotation 
+                    -> PtlInfo 
+                    -> (ProcessIndex,PTriplet) 
+                    -> State (PtlID,Int,IM.IntMap PtlInfo,ParticleCoordMap) (PtlInfo -> PtlInfo,Int,IM.IntMap PtlInfo)
+getAdjustFunc4IDMom lrot rpinfo (procid,PTriplet pid pcode opinfo) = do 
+    (stid,stcol,rmap,stmm) <- get
+    let oid = idChange stid (ptlid rpinfo)
+        nid = maybe (error ("herehere\n" ++ show (procid,pid) ++ "\n" ++ show stmm)) id (M.lookup (procid,pid) stmm)
+        opinfo2 = maybe (error "opinfo in getAdjustFun4IDMom") id (IM.lookup nid rmap) 
+        rmap1 = IM.adjust unstabilize nid rmap
+        midadj = motherAdjustID (oid,nid) 
+        (coloffset,colfunc) = colChangePair stcol (opinfo2,rpinfo)         
+        idfunc = adjustIds (idChange stid) colfunc
+    return (adjustMom lrot.adjustSpin (opinfo,rpinfo).midadj.idfunc,coloffset,rmap1) 
+
+
 -- | 
 accumTotalEvent :: CrossFull ProcessIndex -> LHEvent 
 accumTotalEvent g =  
@@ -159,23 +178,26 @@ accumTotalEvent g =
               maxicol = maximum icols
               minicol = minimum icols 
           (stid,stcol,rmap,stmm) <- get
-          let mopinfo = fmap (pt_pinfo.snd) mmom 
-              rpinfo = (snd . head . mlhev_incoming ) mev
-              (coloffset,colfunc) = colChangePair stcol (mopinfo,rpinfo) 
-          let idfunc = adjustIds (idChange stid) colfunc
+          -- let mopinfo = fmap (pt_pinfo.snd) mmom 
+          let rpinfo = (snd . head . mlhev_incoming ) mev
+          --     (coloffset,colfunc) = colChangePair stcol (mopinfo,rpinfo) 
+          -- let idfunc = adjustIds (idChange stid) colfunc
 
 
-          let (momf,rmap1) = 
-                  flipMaybe mmom (id,rmap) 
-                      (\(procid,PTriplet pid pcode opinfo) -> 
-                          let oid = idChange stid (ptlid rpinfo)
-                              nid = maybe (error ("herehere\n" ++ show (procid,pid) ++ "\n" ++ show stmm)) id (M.lookup (procid,pid) stmm)
-                              rmap1 = IM.adjust unstabilize nid rmap
-                              midadj = motherAdjustID (oid,nid) 
-                          in (adjustMom lrot . adjustSpin (opinfo,rpinfo) . midadj , rmap1) )
+          (change,coloffset,rmap1) <- maybe 
+                                        (return (id,0,rmap))  
+                                        (getAdjustFunc4IDMom lrot rpinfo) 
+                                        mmom
+--                   flipMaybe mmom (id,rmap) 
+--                       (\(procid,PTriplet pid pcode opinfo) -> 
+--                           let oid = idChange stid (ptlid rpinfo)
+--                               nid = maybe (error ("herehere\n" ++ show (procid,pid) ++ "\n" ++ show stmm)) id (M.lookup (procid,pid) stmm)
+--                               rmap1 = IM.adjust unstabilize nid rmap
+--                               midadj = motherAdjustID (oid,nid) 
+--                          in (adjustMom lrot . adjustSpin (opinfo,rpinfo) . midadj , rmap1) )
 
 
-          let (ri,ro,rm,stmm') = adjustPtlInfosInMLHEvent (momf.idfunc,snd) mev stmm
+          let (ri,ro,rm,stmm') = adjustPtlInfosInMLHEvent (change,snd) mev stmm
               kri = map ((,) <$> ptlid <*> id) ri
               kro = map ((,) <$> ptlid <*> id) ro
               krm = map ((,) <$> ptlid <*> id) rm 

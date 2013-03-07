@@ -45,32 +45,36 @@ idChange :: Int -> Int -> Int
 idChange r a = a + r
 
 -- |
-colChangeFunc :: Int -> (Maybe PtlInfo,PtlInfo) -> Int -> Int 
-colChangeFunc offset (moptl,nptl) 0 = 0 
-colChangeFunc offset (Nothing,nptl) a = a  
-colChangeFunc offset (Just optl,nptl) a 
-  | a == col1 = fst (icolup optl)  
-  | a == col2 = snd (icolup optl)  
-  | otherwise = a + offset  
+colChangeFunc :: Int -> (PtlInfo,PtlInfo) -> Int -> Int 
+colChangeFunc offset  _ 0 = 0 
+colChangeFunc offset (optl,nptl) a 
+    | a == col1 = fst (icolup optl) 
+    | a == col2 = snd (icolup optl) 
+    | otherwise = a + offset  
   where (col1,col2) = icolup nptl 
 
+-- colChangeFunc offset (Nothing,nptl) a = a  
+
+
 -- | 
-colChangeOffset :: (Maybe PtlInfo,PtlInfo) -> Int 
-colChangeOffset (Nothing,_) = 0 
-colChangeOffset (Just _,nptl) = let r | col1 /=0 && col2 /= 0 = 2 
-                                      | col1 /=0 && col2 == 0 = 1
-                                      | col1 ==0 && col2 /= 0 = 1  
-                                      | otherwise = 0  
-                               in r 
+colChangeDeltaOffset :: PtlInfo -> Int  
+colChangeDeltaOffset nptl = 
+    let r | col1 /=0 && col2 /= 0 = 2 
+          | col1 /=0 && col2 == 0 = 1
+          | col1 ==0 && col2 /= 0 = 1  
+          | otherwise = 0  
+    in r 
   where (col1,col2) = icolup nptl 
+
+ -- (Maybe PtlInfo,PtlInfo) -> Int 
+-- colChangeOffset (Nothing,_) = 0
 
 -- | 
 colChangePair :: Int 
-              -> (Maybe PtlInfo,PtlInfo) 
+              -> (PtlInfo,PtlInfo) 
               -> (Int, Int -> Int)
-colChangePair offset ptls = 
-  trace ("inside colChangePair" ++ show offset)
-    (colChangeOffset ptls, colChangeFunc offset ptls)
+colChangePair offset (optl,nptl) = 
+    (colChangeDeltaOffset nptl, colChangeFunc offset (optl,nptl))
   
 
 -- | 
@@ -153,7 +157,6 @@ relLrntzXfrm ptrip mother =
 findPTripletUsingPtlIDFrmOutPtls :: ParticleID -> MatchedLHEventProcess p -> PTriplet
 findPTripletUsingPtlIDFrmOutPtls i ev = 
     let (_,after) = break ((== i) <$> (either id fst . fst)) (mlhev_outgoing ev)
--- (\x->either id fst x == i) (mlhev_outgoing ev)  
         pinfo = snd (head after)
         pdg = idup pinfo 
     in PTriplet i pdg pinfo 
