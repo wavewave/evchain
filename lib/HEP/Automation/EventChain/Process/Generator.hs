@@ -47,27 +47,6 @@ import           HEP.Automation.EventChain.Type.Process
 import           HEP.Automation.EventChain.Type.Skeleton
 import           HEP.Automation.EventChain.Type.Spec 
 -- 
--- import qualified Paths_madgraph_auto as PMadGraph 
--- import qualified Paths_madgraph_auto_model as PModel 
-
-{- 
--- |  
-getScriptSetup :: FilePath  -- ^ model directory 
-               -> FilePath  -- ^ sandbox directory 
-               -> FilePath  -- ^ mg5base 
-               -> FilePath  -- ^ main montecarlo run 
-               -> IO ScriptSetup
-getScriptSetup dir_model dir_sb dir_mg5 dir_mc = do 
-  -- mdldir <- (</> "template") <$> PModel.getDataDir
-  dir_tmpl <- (</> "template") <$> PMadGraph.getDataDir 
-  return $ 
-    SS { modeltmpldir = dir_mdl
-       , runtmpldir = dir_tmpl 
-       , sandboxdir = dir_sb 
-       , mg5base    = dir_mg5
-       , mcrundir   = dir_mc 
-       }
--}
 
 
 -- | 
@@ -106,7 +85,7 @@ runSetupPart pset n =
                  , pythia  = NoPYTHIA
                  , lhesanitizer = NoLHESanitize 
                  , pgs     = NoPGS
-                 , jetalgo = (Cone 0.4,NoTau)
+                 -- , jetalgo = (Cone 0.4,NoTau)
                  , uploadhep = NoUploadHEP
                  , setnum  = 1
                  }
