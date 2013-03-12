@@ -33,7 +33,7 @@ import           System.IO
 import           HEP.Automation.MadGraph.Model
 import           HEP.Automation.MadGraph.Machine
 import           HEP.Automation.MadGraph.SetupType
-import           HEP.Automation.MadGraph.UserCut
+-- import           HEP.Automation.MadGraph.UserCut
 import           HEP.Automation.MadGraph.Util 
 import           HEP.Automation.MadGraph.Run
 import           HEP.Parser.LHE.Type
@@ -104,7 +104,6 @@ runSetupPart pset n =
                  , match   = NoMatch
                  , cut     = NoCut 
                  , pythia  = NoPYTHIA
-                 , usercut = NoUserCutDef 
                  , lhesanitizer = NoLHESanitize 
                  , pgs     = NoPGS
                  , jetalgo = Cone 0.4
