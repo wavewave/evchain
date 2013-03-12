@@ -106,7 +106,7 @@ runSetupPart pset n =
                  , pythia  = NoPYTHIA
                  , lhesanitizer = NoLHESanitize 
                  , pgs     = NoPGS
-                 , jetalgo = Cone 0.4
+                 , jetalgo = (Cone 0.4,NoTau)
                  , uploadhep = NoUploadHEP
                  , setnum  = 1
                  }
