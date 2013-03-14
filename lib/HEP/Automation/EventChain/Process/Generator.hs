@@ -72,23 +72,23 @@ processSetupCombined mdl pname wname = PS { model = mdl
                                           , workname = wname 
                                           }
 
+--              RS { param = pset
+
 -- | 
-runSetupPart :: ModelParam model -> Int -> RunSetup model 
-runSetupPart pset n = 
-              RS { param = pset
-                 , numevent = n
-                 , machine = LHC7 ATLAS
-                 , rgrun   = Fixed
-                 , rgscale = 200.0
-                 , match   = NoMatch
-                 , cut     = NoCut 
-                 , pythia  = NoPYTHIA
-                 , lhesanitizer = NoLHESanitize 
-                 , pgs     = NoPGS
-                 -- , jetalgo = (Cone 0.4,NoTau)
-                 , uploadhep = NoUploadHEP
-                 , setnum  = 1
-                 }
+runSetupPart :: Int -> RunSetup  
+runSetupPart n = 
+    RS { numevent = n
+       , machine = LHC7 ATLAS
+       , rgrun   = Fixed
+       , rgscale = 200.0
+       , match   = NoMatch
+       , cut     = NoCut 
+       , pythia  = NoPYTHIA
+       , lhesanitizer = NoLHESanitize 
+       , pgs     = NoPGS
+       , uploadhep = NoUploadHEP
+       , setnum  = 1
+       }
 
 -- | 
 getWorkSetupPart :: model 
@@ -101,7 +101,8 @@ getWorkSetupPart :: model
 getWorkSetupPart mdl ssetup pset str wname n = 
     WS ssetup 
        (processSetupPart mdl str wname) 
-       (runSetupPart pset n) 
+       pset 
+       (runSetupPart n)
        (WebDAVRemoteDir "")
 
  
@@ -110,12 +111,13 @@ getWorkSetupCombined :: model
                      -> ScriptSetup 
                      -> ModelParam model  
                      -> (String,String) -- ^ (directory name, process name)
-                     -> MGRunSetup 
+                     -> RunSetup 
                      -> WorkSetup model
-getWorkSetupCombined mdl ssetup pset (wname,str) mgrs = 
+getWorkSetupCombined mdl ssetup pset (wname,str) rs = 
   WS ssetup 
      (processSetupCombined mdl str wname)
-     (mGRunSetup2RunSetup pset mgrs) 
+     pset 
+     rs
      (WebDAVRemoteDir "")
 
 
@@ -123,14 +125,16 @@ getWorkSetupCombined mdl ssetup pset (wname,str) mgrs =
 work :: (Model model) => WorkSetup model -> IO String 
 work wsetup   = do 
     r <- flip runReaderT wsetup . runErrorT $ do 
-      WS ssetup psetup rsetup _ <- ask 
+      ws <- ask 
+      let (ssetup,psetup,param,rsetup) = 
+             ((,,,) <$> ws_ssetup <*> ws_psetup <*> ws_param <*> ws_rsetup) ws 
       let wb = mcrundir ssetup
           wn = workname psetup 
       b <- liftIO $ doesDirectoryExist (wb </> wn)
       when (not b) $ createWorkDir ssetup psetup
       cardPrepare                      
       generateEvents   
-      let taskname = makeRunName psetup rsetup  
+      let taskname = makeRunName psetup param rsetup  
       wdir <- getWorkDir 
       let fname = wdir </> "Events" </> taskname </> taskname ++ "_unweighted_events.lhe.gz"
       return fname 
@@ -227,20 +231,22 @@ combineX :: (Model model) =>
           -> ScriptSetup 
           -> (String,String)              -- ^ (base madgraph dir name, resultant process name) 
           -> ModelParam model             -- ^ model parameters 
-          -> MGRunSetup
+          -> RunSetup
           -> IO (FilePath,FilePath,WorkSetup model)
-combineX mdl ssetup (basename,procname) pset mgrs = do 
+combineX mdl ssetup (basename,procname) pset rs = do 
     let nwname = basename
     print nwname 
     let wsetup =  getWorkSetupCombined 
-                    mdl ssetup pset (basename,procname) mgrs 
+                    mdl ssetup pset (basename,procname) rs 
     r <- flip runReaderT wsetup . runErrorT $ do 
-      WS _ psetup rsetup _ <- ask 
-      let taskname = makeRunName psetup rsetup
+      ws <- ask 
+      let (ssetup,psetup,param,rsetup) = 
+             ((,,,) <$> ws_ssetup <*> ws_psetup <*> ws_param <*> ws_rsetup) ws 
+      let taskname = makeRunName psetup param rsetup
       wdir <- getWorkDir 
       let dir = wdir </> "Events" </> taskname 
           file = taskname ++ "_unweighted_events.lhe.gz"
-      return (dir,file,wsetup) 
+      return (dir,file,ws) 
     case r of 
       Left msg -> error msg 
       Right str -> return str 

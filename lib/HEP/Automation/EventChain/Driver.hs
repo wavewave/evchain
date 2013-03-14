@@ -57,10 +57,6 @@ import           HEP.Automation.EventChain.Type.Process
 --
 import Debug.Trace
 
-{-
-dummyEvInfo :: EventInfo 
-dummyEvInfo = EvInfo 0 0 0 0 0 0
--}
 
 
 getheader :: FilePath -> IO B.ByteString 
@@ -80,15 +76,15 @@ evchainGen :: (Model model) =>
            -> ModelParam model 
            -> ProcSpecMap 
            -> DCross 
-           -> MGRunSetup 
+           -> RunSetup 
            -> IO () 
-evchainGen mdl path (basename,procname) pset pmap cross mgrs = do 
+evchainGen mdl path (basename,procname) pset pmap cross rs = do 
   let idxcross = (mkCrossIDIdx . mkDICross) cross 
   print idxcross
   rm <- createProcessX 
           (generateX mdl path (basename,procname) pset pmap) 
           (generateD mdl path (basename,procname) pset pmap) 
-          lheCntX lheCntD idxcross (mgrs_numevent mgrs) 
+          lheCntX lheCntD idxcross (numevent rs) 
   let fp = fromJust (HM.lookup [] rm) 
       (_,fn) = splitFileName fp
       (fb,_) = splitExtension fn 
@@ -99,14 +95,14 @@ evchainGen mdl path (basename,procname) pset pmap cross mgrs = do
         lhev <- accumTotalEvent <$> matchFullCross idxcross 
         let output = lheFormatOutput lhev ++ endl 
         return (acc . (output++))
-  let lst = replicate (mgrs_numevent mgrs)  ()
+  let lst = replicate (numevent rs)  ()
   let r = runState (runErrorT (foldM action id lst)) rm2
   case fst r of 
     Left err -> putStrLn err
     Right builder -> do 
       let builder' = ((C8.unpack bstr)++) . builder
       (dir,file,wsetup) <-
-        combineX mdl path (basename,procname) pset mgrs
+        combineX mdl path (basename,procname) pset rs
       b <- doesDirectoryExist dir
       when (not b) (createDirectory dir)
       (LC8.writeFile (dir</>file) . GZ.compress . LC8.pack . builder') []
@@ -120,80 +116,3 @@ webdavconfig urlbase = WebDAVConfig { webdav_path_wget = "/usr/bin/wget"
                                     , webdav_baseurl = urlbase }
 
 
-{- 
--- | 
-dummyGen :: (Model model) => 
-              model 
-           -> (FilePath,FilePath,FilePath)
-           -> ModelParam model 
-           -> FilePath 
-           -> String 
-           -> FilePath 
-           -> ProcSpecMap 
-           -> DCross 
-           -> Int 
-           -> IO () 
-dummyGen mdl path pset tempdirbase urlbase remotedir pmap cross n = do 
-  let idxcross = (mkCrossIDIdx . mkDICross) cross 
-  print idxcross
-  rm <- createProcessX 
-          (dummyX mdl path pset pmap) 
-          (dummyD mdl path pset pmap) 
-          lheCntX lheCntD idxcross n
-  print rm 
-
-  let fp = fromJust (HM.lookup [] rm) 
-      (_,fn) = splitFileName fp
-      (fb,_) = splitExtension fn 
-  print fn 
-  bstr <- getheader fp 
-
-  rm2 <- makeLHEProcessMap rm 
-  let action acc () = do 
-        lhev <- accumTotalEvent <$> matchFullCross idxcross 
-        let output = lheFormatOutput lhev ++ endl 
-        return (acc . (output++))
-  let lst = replicate n ()
-  let r = runState (runErrorT (foldM action id lst)) rm2
-  case fst r of 
-    Left err -> putStrLn err
-    Right builder -> do  let builder' = ((C8.unpack bstr)++) . builder
-                         -- -- createDirectory tempdirbase 
-                         setCurrentDirectory tempdirbase 
-                         print fb 
-                         writeFile fb (builder' "\n</LesHouchesEvents>\n\n") 
-                         let davcfg = webdavconfig urlbase 
-                             rdir = WebDAVRemoteDir remotedir 
-                         uploadFile davcfg rdir fb 
-                         pythia8_run davcfg rdir fb testpythiadir testmcdir  
-                         return ()
-  return ()
--}
-
-{-
-
-testpythiadir = "/home/wavewave/repo/ext/pythia8165/examples"
-
-testmcdir = "/home/wavewave/repo/ext/MadGraph5_v1_4_8_4/pptt"
-
-
-pythia8_run :: WebDAVConfig -> WebDAVRemoteDir 
-           -> FilePath 
-           -> FilePath 
-           -> FilePath 
-           -> IO () 
-pythia8_run davcfg rdir fp pythiadir mcdir = do 
-  -- copyFile 
-  --   (mcdir </> "Cards" </> "pythia_card_default.dat") 
-  --   (mcdir </> "Cards" </> "pythia_card.dat")
-  setCurrentDirectory pythiadir
-  fetchFile davcfg rdir fp
-  let (fn,_) = splitExtension fp
-  -- renameFile fp "unweighted_events.lhe"
-  -- putEnv $ "PDG_MASS_TBL=" ++ pythiadir </> "mass_width_2004.mc"
-  system (pythiadir </> "main25.exe " ++ fp) 
-  
-  return ()
-
-
--}
