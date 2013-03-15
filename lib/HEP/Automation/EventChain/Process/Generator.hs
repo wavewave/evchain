@@ -33,7 +33,6 @@ import           System.IO
 import           HEP.Automation.MadGraph.Model
 import           HEP.Automation.MadGraph.Machine
 import           HEP.Automation.MadGraph.SetupType
--- import           HEP.Automation.MadGraph.UserCut
 import           HEP.Automation.MadGraph.Util 
 import           HEP.Automation.MadGraph.Run
 import           HEP.Parser.LHE.Type

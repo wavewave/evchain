@@ -32,7 +32,6 @@ Library
                    unordered-containers >= 0.2, 
                    hashable >= 1.1,
                    madgraph-auto >= 0.999,
-                   -- madgraph-auto-model >= 0.999,
                    webdav-manager >= 0.999,
                    process,
                    unix,

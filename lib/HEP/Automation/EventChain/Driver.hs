@@ -42,7 +42,6 @@ import           HEP.Automation.MadGraph.Model
 import           HEP.Automation.MadGraph.SetupType
 import           HEP.Parser.LHE.Conduit
 import           HEP.Parser.LHE.Type
-import           HEP.Storage.WebDAV
 -- from this package 
 import           HEP.Automation.EventChain.File
 import           HEP.Automation.EventChain.LHEConn
@@ -107,10 +106,5 @@ evchainGen mdl path (basename,procname) pset pmap cross rs = do
       when (not b) (createDirectory dir)
       (LC8.writeFile (dir</>file) . GZ.compress . LC8.pack . builder') []
       putStrLn $ "The resultant file " ++ (dir</>file) ++ " is generated."
-
-
--- |
-webdavconfig :: String -> WebDAVConfig 
-webdavconfig urlbase = WebDAVConfig { webdav_baseurl = urlbase }
 
 
