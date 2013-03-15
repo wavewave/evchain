@@ -111,8 +111,6 @@ evchainGen mdl path (basename,procname) pset pmap cross rs = do
 
 -- |
 webdavconfig :: String -> WebDAVConfig 
-webdavconfig urlbase = WebDAVConfig { webdav_path_wget = "/usr/bin/wget" 
-                                    , webdav_path_cadaver = "/usr/bin/cadaver" 
-                                    , webdav_baseurl = urlbase }
+webdavconfig urlbase = WebDAVConfig { webdav_baseurl = urlbase }
 
 
