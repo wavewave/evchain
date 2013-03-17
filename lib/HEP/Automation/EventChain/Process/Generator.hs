@@ -50,14 +50,14 @@ import           HEP.Automation.EventChain.Type.Spec
 
 -- | 
 processSetupPart :: model  
-                 -> String 
+                 -> ProcessInfo
                  -> String 
                  -> ProcessSetup model
-processSetupPart mdl pname wname = PS { model = mdl
-                                      , process = pname 
-                                      , processBrief = "part" 
-                                      , workname = wname 
-                                      }
+processSetupPart mdl ps wname = PS { model = mdl
+                                   , process = ps 
+                                   , processBrief = "part" 
+                                   , workname = wname 
+                                   }
 
 
 -- | 
@@ -65,13 +65,12 @@ processSetupCombined :: model
                  -> String 
                  -> String 
                  -> ProcessSetup model
-processSetupCombined mdl pname wname = PS { model = mdl
-                                          , process = pname  -- this is dummy 
-                                          , processBrief = pname
-                                          , workname = wname 
-                                          }
-
---              RS { param = pset
+processSetupCombined mdl pname wname = 
+  PS { model = mdl
+     , process = []    -- dummy process
+     , processBrief = pname
+     , workname = wname 
+     }
 
 -- | 
 runSetupPart :: Int -> RunSetup  
@@ -93,7 +92,7 @@ runSetupPart n =
 getWorkSetupPart :: model 
               -> ScriptSetup 
               -> ModelParam model  
-              -> String 
+              -> ProcessInfo 
               -> String 
               -> Int 
               -> WorkSetup model
@@ -196,10 +195,10 @@ generateX :: (Model model) =>
 generateX mdl ssetup (basename,procname) pset pm MkC {..} n = do 
     case HM.lookup Nothing pm of 
       Nothing -> fail "what? no root process in map?"
-      Just str -> do 
+      Just strs -> do 
         let nwname = basename
         print nwname 
-        work (getWorkSetupPart mdl ssetup pset str nwname n)
+        work (getWorkSetupPart mdl ssetup pset strs nwname n)
 
 
 -- | Single PDGID in dnode is assumed. 
@@ -219,10 +218,10 @@ generateD mdl ssetup (basename,procname) pset pm MkD {..} n = do
         pmidx  = mkPMIdx psidx pdgid' 
     case HM.lookup pmidx pm of 
       Nothing -> fail $ "cannot find process for pmidx = " ++ show pmidx
-      Just str -> do 
-        let nwname = (((basename++"_") ++).show.md5.B.pack.(str ++).show) pmidx
+      Just strs -> do 
+        let nwname = (((basename++"_") ++).show.md5.B.pack.(concat strs ++).show) pmidx
         print nwname 
-        work (getWorkSetupPart mdl ssetup pset str nwname n)
+        work (getWorkSetupPart mdl ssetup pset strs nwname n)
 
 
 combineX :: (Model model) => 

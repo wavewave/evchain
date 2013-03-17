@@ -48,7 +48,7 @@ type ProcessMap a = HM.HashMap ProcessIndex a
 type ProcessID = Int
 
 -- | Process Info  
-type ProcessInfo = String 
+type ProcessInfo = [String] 
 
 -- | 
 mkPMIdx :: ProcSmplIdx -> PDGID -> ProcSpecIdx 
