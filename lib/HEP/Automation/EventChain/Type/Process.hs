@@ -19,9 +19,10 @@ module HEP.Automation.EventChain.Type.Process where
 
 -- import           Data.Hashable 
 import qualified Data.HashMap.Lazy as HM
-
+-- 
+import           HEP.Automation.MadGraph.Type 
 import           HEP.Parser.LHE.Type 
-
+--
 import           HEP.Automation.EventChain.Type.Spec 
 
 -----------------------------------------------------------------------------
@@ -48,7 +49,7 @@ type ProcessMap a = HM.HashMap ProcessIndex a
 type ProcessID = Int
 
 -- | Process Info  
-type ProcessInfo = [String] 
+type ProcessInfo = MGProcess
 
 -- | 
 mkPMIdx :: ProcSmplIdx -> PDGID -> ProcSpecIdx 

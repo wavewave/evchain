@@ -31,8 +31,9 @@ import           System.FilePath
 import           System.IO
 -- from hep-platform packages 
 import           HEP.Automation.MadGraph.Model
-import           HEP.Automation.MadGraph.Machine
+-- import           HEP.Automation.MadGraph.Machine
 import           HEP.Automation.MadGraph.SetupType
+import           HEP.Automation.MadGraph.Type 
 import           HEP.Automation.MadGraph.Util 
 import           HEP.Automation.MadGraph.Run
 import           HEP.Parser.LHE.Type
@@ -67,7 +68,7 @@ processSetupCombined :: model
                  -> ProcessSetup model
 processSetupCombined mdl pname wname = 
   PS { model = mdl
-     , process = []    -- dummy process
+     , process = MGProc [] []    -- dummy process
      , processBrief = pname
      , workname = wname 
      }
@@ -218,10 +219,10 @@ generateD mdl ssetup (basename,procname) pset pm MkD {..} n = do
         pmidx  = mkPMIdx psidx pdgid' 
     case HM.lookup pmidx pm of 
       Nothing -> fail $ "cannot find process for pmidx = " ++ show pmidx
-      Just strs -> do 
+      Just proc@(MGProc _ strs) -> do 
         let nwname = (((basename++"_") ++).show.md5.B.pack.(concat strs ++).show) pmidx
         print nwname 
-        work (getWorkSetupPart mdl ssetup pset strs nwname n)
+        work (getWorkSetupPart mdl ssetup pset proc nwname n)
 
 
 combineX :: (Model model) => 
