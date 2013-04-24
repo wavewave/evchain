@@ -38,6 +38,7 @@ import           HEP.Automation.MadGraph.Type
 import           HEP.Automation.MadGraph.Util 
 import           HEP.Automation.MadGraph.Run
 import           HEP.Parser.LHE.Type
+import           HEP.Parser.LHE.Sanitizer.Type
 import           HEP.Storage.WebDAV
 -- from this package 
 import           HEP.Automation.EventChain.File 
@@ -87,7 +88,7 @@ runSetupPart n =
        , match   = NoMatch
        , cut     = NoCut 
        , pythia  = NoPYTHIA
-       , lhesanitizer = NoLHESanitize 
+       , lhesanitizer = LHESanitize Shuffle
        , pgs     = NoPGS
        , uploadhep = NoUploadHEP
        , setnum  = 1
