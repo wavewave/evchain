@@ -24,8 +24,8 @@ import           Control.Monad.Error
 import qualified Data.ByteString.Lazy.Char8 as B
 import           Data.Conduit
 import qualified Data.Conduit.List as CL
-import           Data.Digest.Pure.MD5
-import           Data.Hashable
+import           Data.Digest.Pure.MD5 (md5)
+import           Data.Hashable (hash)
 import qualified Data.HashMap.Lazy as HM 
 import           System.Directory 
 import           System.FilePath
