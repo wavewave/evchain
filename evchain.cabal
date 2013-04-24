@@ -2,7 +2,7 @@ Name:		evchain
 Version:	0.999
 Synopsis:	
 Description: 	
-License: 	BSD3
+License: 	GPL-3
 License-file:	LICENSE
 Author:		Ian-Woo Kim
 Maintainer: 	Ian-Woo Kim <ianwookim@gmail.com>

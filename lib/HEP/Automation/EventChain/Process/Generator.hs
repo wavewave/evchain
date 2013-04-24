@@ -5,7 +5,7 @@
 -- Module      : HEP.Automation.EventChain.Process.Generator
 -- Copyright   : (c) 2012,2013 Ian-Woo Kim
 --
--- License     : BSD3
+-- License     : GPL-3
 -- Maintainer  : Ian-Woo Kim <ianwookim@gmail.com>
 -- Stability   : experimental
 -- Portability : GHC
@@ -25,6 +25,7 @@ import qualified Data.ByteString.Lazy.Char8 as B
 import           Data.Conduit
 import qualified Data.Conduit.List as CL
 import           Data.Digest.Pure.MD5
+import           Data.Hashable
 import qualified Data.HashMap.Lazy as HM 
 import           System.Directory 
 import           System.FilePath
@@ -53,11 +54,13 @@ import           HEP.Automation.EventChain.Type.Spec
 processSetupPart :: model  
                  -> ProcessInfo
                  -> String 
+                 -> HashSalt
                  -> ProcessSetup model
-processSetupPart mdl ps wname = PS { model = mdl
+processSetupPart mdl ps wname hs = PS { model = mdl
                                    , process = ps 
                                    , processBrief = "part" 
                                    , workname = wname 
+                                   , hashSalt = hs  
                                    }
 
 
@@ -71,6 +74,7 @@ processSetupCombined mdl pname wname =
      , process = MGProc [] []    -- dummy process
      , processBrief = pname
      , workname = wname 
+     , hashSalt = HashSalt Nothing 
      }
 
 -- | 
@@ -95,11 +99,12 @@ getWorkSetupPart :: model
               -> ModelParam model  
               -> ProcessInfo 
               -> String 
+              -> HashSalt
               -> Int 
               -> WorkSetup model
-getWorkSetupPart mdl ssetup pset str wname n = 
+getWorkSetupPart mdl ssetup pset str wname hs n = 
     WS ssetup 
-       (processSetupPart mdl str wname) 
+       (processSetupPart mdl str wname hs) 
        pset 
        (runSetupPart n)
        (WebDAVRemoteDir "")
@@ -199,7 +204,7 @@ generateX mdl ssetup (basename,procname) pset pm MkC {..} n = do
       Just strs -> do 
         let nwname = basename
         print nwname 
-        work (getWorkSetupPart mdl ssetup pset strs nwname n)
+        work (getWorkSetupPart mdl ssetup pset strs nwname (HashSalt Nothing) n)
 
 
 -- | Single PDGID in dnode is assumed. 
@@ -221,8 +226,10 @@ generateD mdl ssetup (basename,procname) pset pm MkD {..} n = do
       Nothing -> fail $ "cannot find process for pmidx = " ++ show pmidx
       Just proc@(MGProc _ strs) -> do 
         let nwname = (((basename++"_") ++).show.md5.B.pack.(concat strs ++).show) pmidx
+            hs = HashSalt (Just (hash nwname `mod` 1000000 + 1000001))
         print nwname 
-        work (getWorkSetupPart mdl ssetup pset proc nwname n)
+        print hs 
+        work (getWorkSetupPart mdl ssetup pset proc nwname hs n)
 
 
 combineX :: (Model model) => 
