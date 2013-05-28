@@ -138,7 +138,12 @@ work wsetup   = do
       b <- liftIO $ doesDirectoryExist (wb </> wn)
       when (not b) $ createWorkDir ssetup psetup
       cardPrepare                      
-      generateEvents   
+      generateEvents
+      -- sanitize if LHESanitize is on
+      case lhesanitizer rsetup of
+        LHESanitize _ -> sanitizeLHE
+        _ -> return () 
+      --    
       let taskname = makeRunName psetup param rsetup  
       wdir <- getWorkDir 
       let fname = wdir </> "Events" </> taskname </> taskname ++ "_unweighted_events.lhe.gz"
