@@ -172,8 +172,7 @@ accumTotalEvent g =
           let (lrot,mmom,mev) = (absoluteContext cev, relativeContext cev, selfEvent cev)
               pinfos = (getPInfos . mlhev_orig) mev
               ptlids = map ptlid pinfos
-              icols = filter (/= 0) (concatMap ((\x -> [fst x, snd x]) . icolup )
-                                               pinfos)
+              icols = filter (/= 0) (concatMap ((\x -> [fst x, snd x]) . icolup ) pinfos)
               maxid = maximum ptlids 
               maxicol = maximum icols
               minicol = minimum icols 
@@ -190,7 +189,11 @@ accumTotalEvent g =
               rmap2 = maybe (insertAll kri rmap1) (const rmap1) mmom 
               rmap3 = insertAll kro rmap2
               rmap4 = insertAll krm rmap3 
-          put (stid+maxid-1,stcol+maxicol-minicol+1-coloffset,rmap4,stmm')
+          -- trace ("stcol = " ++ show stcol) $ 
+          put ( stid+maxid-1
+                , stcol+maxicol-minicol+1-coloffset -- this is a bug
+                , rmap4
+                , stmm')
 
 
 -- | 
