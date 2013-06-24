@@ -189,8 +189,8 @@ accumTotalEvent g =
               rmap2 = maybe (insertAll kri rmap1) (const rmap1) mmom 
               rmap3 = insertAll kro rmap2
               rmap4 = insertAll krm rmap3 
-          -- trace ("stcol = " ++ show stcol) $ 
-          put ( stid+maxid-1
+          trace ("stcol = " ++ show stcol) $ 
+            put ( stid+maxid-1
                 , stcol+maxicol-minicol+1-coloffset -- this is a bug
                 , rmap4
                 , stmm')

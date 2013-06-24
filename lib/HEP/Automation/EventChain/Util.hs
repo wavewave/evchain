@@ -50,10 +50,15 @@ colChangeFunc offset  _ 0 = 0
 colChangeFunc offset (optl,nptl) a 
     | a == col1 = fst (icolup optl) 
     | a == col2 = snd (icolup optl) 
-    | a > col1 && a > col2 = a + offset - 2
-    | (a < col1 && a > col2) || (a > col1 && a < col2) = a + offset - 1  
+    | a > col1 && a > col2 = a + offset - ncol
+    | (a < col1 && a > col2) || (a > col1 && a < col2) = a  + offset - ncol + 1  
     | a < col1 && a < col2 = a + offset 
   where (col1,col2) = icolup nptl 
+        ncol = colChangeDeltaOffset nptl 
+
+
+
+
 
 -- colChangeFunc offset (Nothing,nptl) a = a  
 
