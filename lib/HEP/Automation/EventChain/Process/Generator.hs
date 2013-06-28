@@ -209,7 +209,7 @@ generateX mdl ssetup (basename,procname) pset pm MkC {..} n = do
       Nothing -> fail "what? no root process in map?"
       Just strs -> do 
         let nwname = basename
-        print nwname 
+        -- print nwname 
         work (getWorkSetupPart mdl ssetup pset strs nwname (HashSalt Nothing) n)
 
 
@@ -221,20 +221,24 @@ generateD :: (Model model) =>
           -> (String,String)              -- ^ (base madgraph dir name, resultant process name) 
           -> ModelParam model             -- ^ model parameter 
           -> ProcSpecMap 
+          -> ProcessIndex 
           -> DecayID ProcSmplIdx 
           -> Int 
           -> IO FilePath
-generateD mdl ssetup (basename,procname) pset pm MkD {..} n = do 
+generateD mdl ssetup (basename,procname) pset pm procidx MkD {..} n = do 
     let psidx = (proc_procid . head . ptl_procs) dnode 
         pdgid' = (proc_pdgid . head . ptl_procs ) dnode
         pmidx  = mkPMIdx psidx pdgid' 
     case HM.lookup pmidx pm of 
       Nothing -> fail $ "cannot find process for pmidx = " ++ show pmidx
       Just proc@(MGProc _ strs) -> do 
-        let nwname = (((basename++"_") ++).show.md5.B.pack.(concat strs ++).show) pmidx
+        let nwname = (((basename++"_") ++).show.md5.B.pack.(concat strs ++)) (show procidx ++ show pmidx)
             hs = HashSalt (Just (hash nwname `mod` 1000000 + 1000001))
-        print nwname 
-        print hs 
+        putStrLn ("procidx = " ++ show procidx) 
+        putStrLn ("dnone = " ++ show dnode)
+        putStrLn ("pmidx = " ++ show pmidx)
+        putStrLn ("nwname = " ++ nwname) 
+        -- print hs 
         work (getWorkSetupPart mdl ssetup pset proc nwname hs n)
 
 

@@ -19,6 +19,7 @@ module HEP.Automation.EventChain.Process where
 -- other packages from others
 import           Data.Foldable (foldrM)
 import qualified Data.HashMap.Lazy as HM
+import           Data.List (intercalate)
 -- from other hep-platform packages 
 import           HEP.Parser.LHE.Type
 -- from this package
@@ -26,7 +27,7 @@ import           HEP.Automation.EventChain.Type.Process
 import           HEP.Automation.EventChain.Type.Skeleton
 import           HEP.Automation.EventChain.Type.Spec
 --
--- import Debug.Trace
+import Debug.Trace
 
 
 -- | counting each particle id
@@ -47,7 +48,7 @@ mkOccNumDecay MkD {..} cntr = mkOccNum (ptl_ptlid dnode) cntr
 
 -- | create process for a decay 
 createProcessD :: (Show a, Monad m) => 
-                  (DecayID p -> Int -> m a) 
+                  (ProcessIndex -> DecayID p -> Int -> m a) 
                -> (PDGID -> DecayID p -> a -> m Counter)
                -> DecayID p 
                -> ProcessIndex 
@@ -59,7 +60,7 @@ createProcessD gen cntd decay idxroot procm lst =
 
 -- | 
 createProcessDwrk :: (Show a, Monad m) =>
-                     (DecayID p -> Int -> m a) -- ^ generator function for decay 
+                     (ProcessIndex -> DecayID p -> Int -> m a) -- ^ generator function for decay 
                   -> (PDGID -> DecayID p -> a -> m Counter)  -- ^ counter function for a 
                   -> DecayID p
                   -> ProcessIndex 
@@ -72,18 +73,18 @@ createProcessDwrk gen cntd self@MkD {..} idxroot (pdgid',n) m
         Nothing -> fail ("createProcessDwrk : cannot find pdgid = " ++ show pdgid') 
         Just prpdg -> do 
           let nkey = (ptl_ptlid dnode,pdgid') : idxroot
-          dproc <- gen self {dnode=dnode { ptl_procs = [prpdg] }} n 
+          dproc <- gen nkey self {dnode=dnode { ptl_procs = [prpdg] }} n 
           let newmap = HM.insert nkey dproc m 
           cntr <- cntd pdgid' self dproc
           rmap <- foldrM (f nkey (outcounter cntr)) newmap douts
-          -- trace ("\n\n\n\n\n" ++ " (pdgid',n) = " ++ show (pdgid',n) ++ "\n\n\n\n\n\n" ++ show rmap ++ "\n\n\n\n\n") $ 
-          return rmap 
+          trace ("\n\n\n\n\n" ++ " (pdgid',n) = " ++ show (pdgid',n) ++ "\n\n\n\n\n\n" ++ (intercalate "\n" . map show) (HM.toList rmap) ++ "\n\n\n\n\n") $ 
+            return rmap 
   where f k cntrm dcy procm = createProcessD gen cntd dcy k procm (mkOccNumDecay dcy cntrm) 
 
 -- | create process for a cross 
 createProcessX :: (Show a, Monad m) => 
                   (CrossID p -> Int -> m a) -- ^ generator function for cross
-               -> (DecayID p -> Int -> m a) -- ^ generator function for decay 
+               -> (ProcessIndex -> DecayID p -> Int -> m a) -- ^ generator function for decay 
                -> (CrossID p -> a -> m Counter)  -- ^ counter function 
                -> (PDGID -> DecayID p -> a -> m Counter) 
                -> CrossID p
