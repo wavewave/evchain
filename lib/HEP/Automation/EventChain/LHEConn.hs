@@ -147,8 +147,8 @@ getAdjustFunc4IDMom :: LorentzRotation
 getAdjustFunc4IDMom lrot rpinfo (procid,PTriplet pid pcode opinfo) = do 
     (stid,stcol,rmap,stmm) <- get
     let oid = idChange stid (ptlid rpinfo)
-        nid = maybe (error ("herehere\n" ++ show (procid,pid) ++ "\n" ++ show stmm)) id (M.lookup (procid,pid) stmm)
-        opinfo2 = maybe (error "opinfo in getAdjustFun4IDMom") id (IM.lookup nid rmap) 
+        nid = maybe (error ("error in getAdjustFunc4IDMom: " ++ show (procid,pid) ++ "\n" ++ show stmm)) id (M.lookup (procid,pid) stmm)
+        opinfo2 = maybe (error "error in opinfo in getAdjustFun4IDMom") id (IM.lookup nid rmap) 
         rmap1 = IM.adjust unstabilize nid rmap
         midadj = motherAdjustID (oid,nid) 
         (coloffset,colfunc) = colChangePair stcol (opinfo2,rpinfo)         
@@ -189,11 +189,10 @@ accumTotalEvent g =
               rmap2 = maybe (insertAll kri rmap1) (const rmap1) mmom 
               rmap3 = insertAll kro rmap2
               rmap4 = insertAll krm rmap3 
-          trace ("stcol = " ++ show stcol) $ 
-            put ( stid+maxid-1
-                , stcol+maxicol-minicol+1-coloffset -- this is a bug
-                , rmap4
-                , stmm')
+          put ( stid+maxid-1
+              , stcol+maxicol-minicol+1-coloffset 
+              , rmap4
+              , stmm')
 
 
 -- | 
