@@ -32,7 +32,6 @@ import           System.FilePath
 import           System.IO
 -- from hep-platform packages 
 import           HEP.Automation.MadGraph.Model
--- import           HEP.Automation.MadGraph.Machine
 import           HEP.Automation.MadGraph.SetupType
 import           HEP.Automation.MadGraph.Type 
 import           HEP.Automation.MadGraph.Util 
@@ -88,7 +87,7 @@ runSetupPart n =
        , match   = NoMatch
        , cut     = NoCut 
        , pythia  = NoPYTHIA
-       , lhesanitizer = LHESanitize Shuffle
+       , lhesanitizer = [Shuffle, Blobize]
        , pgs     = NoPGS
        , uploadhep = NoUploadHEP
        , setnum  = 1
@@ -141,8 +140,8 @@ work wsetup   = do
       generateEvents
       -- sanitize if LHESanitize is on
       case lhesanitizer rsetup of
-        LHESanitize _ -> sanitizeLHE
-        _ -> return () 
+        [] -> return ()
+        _:_ -> sanitizeLHE
       --    
       let taskname = makeRunName psetup param rsetup  
       wdir <- getWorkDir 
