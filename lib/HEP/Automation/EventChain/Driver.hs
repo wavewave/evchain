@@ -18,6 +18,7 @@ import qualified Codec.Compression.GZip as GZ
 import           Control.Applicative
 import           Control.Monad 
 import           Control.Monad.Error 
+import           Control.Monad.Reader 
 import           Control.Monad.State 
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C8
@@ -38,10 +39,15 @@ import           System.Process
 import           Text.XML.Stream.Parse
 import           Text.XML.Stream.Render
 -- from hep-platform 
+import           HEP.Automation.EventGeneration.Work
 import           HEP.Automation.MadGraph.Model
+import           HEP.Automation.MadGraph.Run
 import           HEP.Automation.MadGraph.SetupType
+import           HEP.Automation.MadGraph.Type
 import           HEP.Parser.LHE.Conduit
 import           HEP.Parser.LHE.Type
+import           HEP.Storage.WebDAV.Type
+import           HEP.Storage.WebDAV.CURL
 -- from this package 
 import           HEP.Automation.EventChain.File
 import           HEP.Automation.EventChain.LHEConn
@@ -50,6 +56,7 @@ import           HEP.Automation.EventChain.Process
 import           HEP.Automation.EventChain.Process.Generator
 import           HEP.Automation.EventChain.Simulator 
 import           HEP.Automation.EventChain.SpecDSL
+import           HEP.Automation.EventChain.Type.MultiProcess
 import           HEP.Automation.EventChain.Type.Skeleton
 import           HEP.Automation.EventChain.Type.Spec
 import           HEP.Automation.EventChain.Type.Process
@@ -108,3 +115,73 @@ evchainGen mdl sset rset (basename,procname) pset pmap cross = do
       putStrLn $ "The resultant file " ++ (dir</>file) ++ " is generated."
 
 
+-- | 
+genPhase1 :: (Model model) => 
+             model 
+          -> ScriptSetup
+          -> ProcDir 
+          -> SingleProc
+          -> ModelParam model 
+          -> (NumOfEv,SetNum)
+          -> IO ()
+genPhase1 mdl sset pdir sp pset (numev, sn) = 
+    evchainGen mdl sset rset (bname, pname) pset (spProcSpecMap sp) (spCross sp)
+  where bname = pdWorkDirPrefix pdir ++ "_" ++ pname
+        pname = spName sp  
+        rset = (spRunSetup sp) numev sn
+ 
+-- | 
+genPhase2 :: (Model model) =>
+             model 
+          -> ScriptSetup
+          -> ProcDir 
+          -> SingleProc
+          -> ModelParam model 
+          -> (NumOfEv,SetNum)
+          -> IO ()
+genPhase2 mdl sset pdir sp pset (numev, sn) = do 
+    r <- flip runReaderT wsetup . runErrorT $ do 
+       ws <- ask 
+       let (ssetup,psetup,param,rsetup) = 
+             ((,,,) <$> ws_ssetup <*> ws_psetup <*> ws_param <*> ws_rsetup) ws 
+       cardPrepare                      
+       case (lhesanitizer rsetup,pythia rsetup) of
+         ([],_) -> return ()
+         (_:_, RunPYTHIA) -> do 
+           sanitizeLHE
+           runPYTHIA
+           runPGS           
+           runClean         
+         (_:_, NoPYTHIA) -> do 
+           sanitizeLHE
+       cleanHepFiles  
+    print r  
+    return ()
+
+  where bname = pdWorkDirPrefix pdir ++ "_" ++ pname
+        pname = spName sp 
+        rset = (spRunSetup sp) numev sn 
+        wsetup' = getWorkSetupCombined mdl sset rset pset (bname,pname)  
+        wsetup = wsetup' { ws_storage = 
+                             WebDAVRemoteDir 
+                               (pdRemoteDirBase pdir </> pdRemoteDirPrefix pdir ++ "_" ++ pname) }
+
+-- | 
+genPhase3 :: (Model model) =>
+             model 
+          -> ScriptSetup
+          -> ProcDir 
+          -> SingleProc
+          -> ModelParam model 
+          -> (NumOfEv,SetNum)
+          -> WebDAVConfig  
+          -> IO Bool 
+genPhase3 mdl sset pdir sp pset (numev, sn) wdavcfg =  
+    uploadEventFull NoUploadHEP wdavcfg wsetup 
+  where bname = pdWorkDirPrefix pdir ++ "_" ++ pname
+        pname = spName sp 
+        rset = (spRunSetup sp) numev sn 
+        wsetup' = getWorkSetupCombined mdl sset rset pset (bname,pname) 
+        wsetup = wsetup' { ws_storage = 
+                             WebDAVRemoteDir 
+                               (pdRemoteDirBase pdir </> pdRemoteDirPrefix pdir ++ "_" ++ pname) }

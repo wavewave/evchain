@@ -17,6 +17,7 @@ Library
   ghc-prof-options: -caf-all -auto-all
   Build-Depends: 
                    base>4, mtl>2, directory, filepath,
+                   transformers > 0.3,
                    bytestring >= 0.9,
                    cmdargs, 
                    LHEParser >= 0.999,
@@ -38,7 +39,8 @@ Library
                    containers >= 0.4, 
                    pureMD5 >= 2.1, 
                    zlib >= 0.5, 
-                   LHE-sanitizer
+                   LHE-sanitizer,
+                   pipeline-eventgen
                    
   Exposed-Modules: 
                    HEP.Automation.EventChain.Driver 
@@ -51,6 +53,7 @@ Library
                    HEP.Automation.EventChain.Simulator
                    HEP.Automation.EventChain.SpecDSL
                    HEP.Automation.EventChain.Type.Match 
+                   HEP.Automation.EventChain.Type.MultiProcess
                    HEP.Automation.EventChain.Type.Process
                    HEP.Automation.EventChain.Type.Skeleton
                    HEP.Automation.EventChain.Type.Spec         
