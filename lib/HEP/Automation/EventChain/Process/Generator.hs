@@ -78,9 +78,10 @@ processSetupCombined mdl pname wname =
      }
 
 -- | 
-runSetupPart :: Int -> RunSetup  
-runSetupPart n = 
-    RS { numevent = n
+runSetupPart :: RunSetup -> Int -> RunSetup  
+runSetupPart tmpl n =  tmpl { numevent = n, match = NoMatch, cut = NoCut, pythia = NoPYTHIA 
+                            , lhesanitizer = [Shuffle, Blobize], pgs = NoPGS, uploadhep = NoUploadHEP } 
+{-    RS { numevent = n
        , machine = LHC7 ATLAS
        , rgrun   = Fixed
        , rgscale = 200.0
@@ -91,37 +92,38 @@ runSetupPart n =
        , pgs     = NoPGS
        , uploadhep = NoUploadHEP
        , setnum  = 1
-       }
+       } -}
 
 -- | 
 getWorkSetupPart :: model 
               -> ScriptSetup 
+              -> RunSetup
               -> ModelParam model  
               -> ProcessInfo 
               -> String 
               -> HashSalt
               -> Int 
               -> WorkSetup model
-getWorkSetupPart mdl ssetup pset str wname hs n = 
+getWorkSetupPart mdl ssetup rset pset str wname hs n = 
     WS ssetup 
        (processSetupPart mdl str wname hs) 
        pset 
-       (runSetupPart n)
+       (runSetupPart rset n)
        (WebDAVRemoteDir "")
 
  
 -- | 
 getWorkSetupCombined :: model 
                      -> ScriptSetup 
+                     -> RunSetup 
                      -> ModelParam model  
                      -> (String,String) -- ^ (directory name, process name)
-                     -> RunSetup 
                      -> WorkSetup model
-getWorkSetupCombined mdl ssetup pset (wname,str) rs = 
+getWorkSetupCombined mdl ssetup rset pset (wname,str) = 
   WS ssetup 
      (processSetupCombined mdl str wname)
      pset 
-     rs
+     rset
      (WebDAVRemoteDir "")
 
 
@@ -197,19 +199,19 @@ cnt1EvtD i decay (Counter incomingm outgoingm) ev@LHEvent {..} = do
 generateX :: (Model model) => 
              model 
           -> ScriptSetup 
+          -> RunSetup 
           -> (String,String)              -- ^ (base madgraph dir name, resultant process name) 
           -> ModelParam model             -- ^ model parameters 
           -> ProcSpecMap                  -- ^ 
           -> CrossID ProcSmplIdx 
           -> Int 
           -> IO FilePath  
-generateX mdl ssetup (basename,procname) pset pm MkC {..} n = do 
+generateX mdl ssetup rset (basename,procname) pset pm MkC {..} n = do 
     case HM.lookup Nothing pm of 
       Nothing -> fail "what? no root process in map?"
       Just strs -> do 
         let nwname = basename
-        -- print nwname 
-        work (getWorkSetupPart mdl ssetup pset strs nwname (HashSalt Nothing) n)
+        work (getWorkSetupPart mdl ssetup rset pset strs nwname (HashSalt Nothing) n)
 
 
 -- | Single PDGID in dnode is assumed. 
@@ -217,6 +219,7 @@ generateX mdl ssetup (basename,procname) pset pm MkC {..} n = do
 generateD :: (Model model) => 
              model 
           -> ScriptSetup 
+          -> RunSetup 
           -> (String,String)              -- ^ (base madgraph dir name, resultant process name) 
           -> ModelParam model             -- ^ model parameter 
           -> ProcSpecMap 
@@ -224,7 +227,7 @@ generateD :: (Model model) =>
           -> DecayID ProcSmplIdx 
           -> Int 
           -> IO FilePath
-generateD mdl ssetup (basename,procname) pset pm procidx MkD {..} n = do 
+generateD mdl ssetup rset (basename,procname) pset pm procidx MkD {..} n = do 
     let psidx = (proc_procid . head . ptl_procs) dnode 
         pdgid' = (proc_pdgid . head . ptl_procs ) dnode
         pmidx  = mkPMIdx psidx pdgid' 
@@ -238,21 +241,21 @@ generateD mdl ssetup (basename,procname) pset pm procidx MkD {..} n = do
         putStrLn ("pmidx = " ++ show pmidx)
         putStrLn ("nwname = " ++ nwname) 
         -- print hs 
-        work (getWorkSetupPart mdl ssetup pset proc nwname hs n)
+        work (getWorkSetupPart mdl ssetup rset pset proc nwname hs n)
 
 
 combineX :: (Model model) => 
              model 
           -> ScriptSetup 
+          -> RunSetup
           -> (String,String)              -- ^ (base madgraph dir name, resultant process name) 
           -> ModelParam model             -- ^ model parameters 
-          -> RunSetup
           -> IO (FilePath,FilePath,WorkSetup model)
-combineX mdl ssetup (basename,procname) pset rs = do 
+combineX mdl ssetup rset (basename,procname) pset = do 
     let nwname = basename
     print nwname 
     let wsetup =  getWorkSetupCombined 
-                    mdl ssetup pset (basename,procname) rs 
+                    mdl ssetup rset pset (basename,procname) 
     r <- flip runReaderT wsetup . runErrorT $ do 
       ws <- ask 
       let (ssetup,psetup,param,rsetup) = 

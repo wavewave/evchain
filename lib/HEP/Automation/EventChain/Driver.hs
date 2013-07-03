@@ -71,19 +71,19 @@ getheader fp = do
 evchainGen :: (Model model) => 
               model 
            -> ScriptSetup
+           -> RunSetup 
            -> (String,String)
            -> ModelParam model 
            -> ProcSpecMap 
            -> DCross 
-           -> RunSetup 
            -> IO () 
-evchainGen mdl path (basename,procname) pset pmap cross rs = do 
+evchainGen mdl sset rset (basename,procname) pset pmap cross = do 
   let idxcross = (mkCrossIDIdx . mkDICross) cross 
   print idxcross
   rm <- createProcessX 
-          (generateX mdl path (basename,procname) pset pmap) 
-          (generateD mdl path (basename,procname) pset pmap) 
-          lheCntX lheCntD idxcross (numevent rs) 
+          (generateX mdl sset rset (basename,procname) pset pmap) 
+          (generateD mdl sset rset (basename,procname) pset pmap) 
+          lheCntX lheCntD idxcross (numevent rset) 
   let fp = fromJust (HM.lookup [] rm) 
       (_,fn) = splitFileName fp
       (fb,_) = splitExtension fn 
@@ -94,14 +94,14 @@ evchainGen mdl path (basename,procname) pset pmap cross rs = do
         lhev <- accumTotalEvent <$> matchFullCross idxcross 
         let output = lheFormatOutput lhev ++ endl 
         return (acc . (output++))
-  let lst = replicate (numevent rs)  ()
+  let lst = replicate (numevent rset)  ()
   let r = runState (runErrorT (foldM action id lst)) rm2
   case fst r of 
     Left err -> putStrLn err
     Right builder -> do 
       let builder' = ((C8.unpack bstr)++) . builder
       (dir,file,wsetup) <-
-        combineX mdl path (basename,procname) pset rs
+        combineX mdl sset rset (basename,procname) pset 
       b <- doesDirectoryExist dir
       when (not b) (createDirectory dir)
       (LC8.writeFile (dir</>file) . GZ.compress . LC8.pack . builder') []
