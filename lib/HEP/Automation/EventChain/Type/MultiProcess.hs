@@ -17,9 +17,13 @@ module HEP.Automation.EventChain.Type.MultiProcess
 , SetNum (..)
 , SingleProc(..)
 , ProcDir(..)
-, MultiProc (..) 
+, MultiProc 
+, mpProcDir
+, mpMultiProcessParts
+, mkMultiProc
 ) where
- 
+
+import Control.Applicative ((<$>),(<*>)) 
 import qualified Data.Map as M
 -- 
 import HEP.Automation.MadGraph.SetupType 
@@ -27,9 +31,9 @@ import HEP.Automation.MadGraph.SetupType
 import HEP.Automation.EventChain.Type.Spec
 import HEP.Automation.EventChain.Type.Process
 
-newtype NumOfEv = NumOfEv { unNumOfEv :: Int }
+newtype NumOfEv = NumOfEv { unNumOfEv :: Int } deriving (Show)
 
-newtype SetNum = SetNum { unSetNum :: Int } 
+newtype SetNum = SetNum { unSetNum :: Int } deriving (Show)
 
 data SingleProc = SingleProc { spName :: String 
                              , spCross :: DCross 
@@ -41,10 +45,15 @@ data ProcDir = ProcDir { pdWorkDirPrefix :: String
                        , pdRemoteDirBase :: FilePath 
                        , pdRemoteDirPrefix :: String 
                        }
-data MultiProc = MultiProc { mpName :: String 
-                           , mpProcDir :: ProcDir 
-                           , mpMultiProcessMap :: M.Map String SingleProc 
+
+data MultiProc = MultiProc { mpProcDir :: ProcDir 
+                           , mpMultiProcessParts :: M.Map String SingleProc 
                            }
+
+mkMultiProc :: ProcDir -> [SingleProc] -> MultiProc 
+mkMultiProc pdir sprocs = let lst = map ((,) <$> spName <*> id) sprocs
+                          in MultiProc pdir (M.fromList lst) 
+
 
 {-
 mkSingleProc :: String -> DCross -> ProcSpecMap -> (NumOfEv -> SetNum -> RunSetup) -> SingleProc

@@ -175,7 +175,9 @@ accumTotalEvent g =
               icols = filter (/= 0) (concatMap ((\x -> [fst x, snd x]) . icolup ) pinfos)
               maxid = maximum ptlids 
               maxicol = maximum icols
-              minicol = minimum icols 
+              minicol = minimum icols
+              deltaicol = if null icols then 0 else maxicol - minicol
+ 
           (stid,stcol,rmap,stmm) <- get
           let rpinfo = (snd . head . mlhev_incoming ) mev
           (change,coloffset,rmap1) <- maybe 
@@ -190,7 +192,7 @@ accumTotalEvent g =
               rmap3 = insertAll kro rmap2
               rmap4 = insertAll krm rmap3 
           put ( stid+maxid-1
-              , stcol+maxicol-minicol+1-coloffset 
+              , stcol+deltaicol+1-coloffset 
               , rmap4
               , stmm')
 

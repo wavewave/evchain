@@ -30,6 +30,7 @@ import qualified Data.Conduit.Util.Control as CU
 import           Data.Conduit.Zlib
 import qualified Data.Traversable as T
 import qualified Data.HashMap.Lazy as HM
+import qualified Data.Map as M
 import           Data.Maybe 
 import           System.Directory 
 import           System.Posix.Env 
@@ -152,6 +153,11 @@ genPhase2 mdl sset pdir sp pset (numev, sn) = do
            runPYTHIA
            runPGS           
            runClean         
+         (_:_, RunPYTHIA8) -> do 
+           sanitizeLHE
+           runPYTHIA8
+           runPGS           
+           runClean         
          (_:_, NoPYTHIA) -> do 
            sanitizeLHE
        cleanHepFiles  
@@ -185,3 +191,18 @@ genPhase3 mdl sset pdir sp pset (numev, sn) wdavcfg =
         wsetup = wsetup' { ws_storage = 
                              WebDAVRemoteDir 
                                (pdRemoteDirBase pdir </> pdRemoteDirPrefix pdir ++ "_" ++ pname) }
+
+-- | 
+genMultiProcess :: (Model model) => model -> ScriptSetup -> MultiProc -> ModelParam model 
+                -> WebDAVConfig 
+                -> (String, NumOfEv, SetNum)  
+                -> IO ()
+genMultiProcess mdl ssetup mp param wdavcfg (pname,nev,sn) = do 
+  case M.lookup pname (mpMultiProcessParts mp) of 
+    Nothing -> return ()
+    Just sproc -> do 
+      let pdir = mpProcDir mp
+      genPhase1 mdl ssetup pdir sproc param (nev,sn)
+      genPhase2 mdl ssetup pdir sproc param (nev,sn)
+      genPhase3 mdl ssetup pdir sproc param (nev,sn) wdavcfg
+      return ()

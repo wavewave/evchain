@@ -53,15 +53,15 @@ matchOr msg m xs = msum' (msg ++ ": no match in matchOr with " ++ show xs) (map 
 actT :: (Functor m, Monad m) => InOutDir -> (ParticleID,[PDGID]) -> MatchM m (ParticleID,PtlInfo) 
 actT dir (pid,ids) = (pid,) <$> matchOr "actT" (match1 dir) ids
 
---  msum' "no match in actT" (map (match1 dir) ids)
 
 -- |
 actD :: (Functor m, Monad m, Show p) => InOutDir -> PtlProcPDG p -> MatchM m (ParticleID,(p,PtlInfo))
-actD dir PtlProcPDG {..} = (ptl_ptlid,) <$> matchOr "actD" m ptl_procs
+actD dir PtlProcPDG {..} = do
+    st <- get 
+    (ptl_ptlid,) <$> matchOr ("actD:" ++ show st ++ ":") m ptl_procs
   where m proc = (proc_procid proc,) <$> match1 dir (proc_pdgid proc) 
 
 
--- msum' "no match in actD" (map m ptl_procs)
 
 -- |
 checkD :: (Functor m, Monad m, Show p) => InOutDir -> DecayID p 
