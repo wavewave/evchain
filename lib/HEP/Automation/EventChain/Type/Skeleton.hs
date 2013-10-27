@@ -1,6 +1,6 @@
-{-# LANGUAGE DataKinds, GADTs, KindSignatures, TypeFamilies, 
+{-# LANGUAGE GADTs, TypeFamilies, 
              ExistentialQuantification, MultiParamTypeClasses, 
-             ConstraintKinds, TypeSynonymInstances, FlexibleInstances, 
+             TypeSynonymInstances, FlexibleInstances, 
              FlexibleContexts, RecordWildCards, 
              ScopedTypeVariables, Rank2Types, GeneralizedNewtypeDeriving, 
              StandaloneDeriving #-}

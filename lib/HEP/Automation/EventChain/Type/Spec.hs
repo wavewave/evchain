@@ -121,9 +121,11 @@ foremostParticleID :: DecayID p -> ParticleID
 foremostParticleID MkD {..} = ptl_ptlid dnode
 foremostParticleID MkT {..} = fst tnode 
 
+-- deriving instance (Show a) => Show (Decay a [PDGID])
+-- deriving instance (Eq a) => Eq (Decay a [PDGID])
 
 -- |
-instance Num (Decay a [PDGID] ) where
+instance (Show a, Eq a) => Num (Decay a [PDGID] ) where
   _ + _ = error " no + defined for SDecay"
   negate (MkT [n]) = MkT [-n]
   negate _ = error " no negate defined for SDecay in general" 
@@ -132,15 +134,6 @@ instance Num (Decay a [PDGID] ) where
   signum _ = error " no signum defined for SDecay"  
   fromInteger n = MkT [fromInteger n]
 
-{-
--- | 
-
-lookupPDGID :: PtlProcPDG p -> PDGID -> Maybe (ProcPDG p) 
-lookupPDGID PtlProcPDG {..} pdgid' = 
-  let flst = filter (\x -> proc_pdgid x == pdgid') ptl_procs  
-  in if (not.null) flst then Just (head flst) else Nothing 
-
--}
 
 -- | utility function for looking id up from a list of ProcPDG 
 
