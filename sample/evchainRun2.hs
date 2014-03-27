@@ -38,24 +38,44 @@ wplus = [24]
 wminus :: [Int]
 wminus = [-24]
 
-p_top :: DDecay
-p_top = d (top, [t wplus, t bottom])
+lepton12 :: [Int]
+lepton12 = [11,13]
 
-p_antitop :: DDecay
-p_antitop = d (antitop, [t wminus, t antibottom])
+antilepton12 :: [Int]
+antilepton12 = [-11,-13] 
+
+neutrino12 :: [Int]
+neutrino12 = [12,14]
+
+antineutrino12 :: [Int]
+antineutrino12 = [-12,-14] 
 
 p_ttbar :: DCross 
 p_ttbar = x (t proton, t proton, [p_top, p_antitop])
 
+p_top :: DDecay
+p_top = d (top, [p_Wplus, t bottom])
+
+p_antitop :: DDecay
+p_antitop = d (antitop, [p_Wminus, t antibottom])
+
+p_Wplus :: DDecay
+p_Wplus = d (wplus, [t antilepton12, t neutrino12]) 
+
+p_Wminus :: DDecay
+p_Wminus = d (wminus, [t lepton12, t antineutrino12])
+
 map_ttbar :: ProcSpecMap
 map_ttbar = 
-    HM.fromList [ (Nothing       , MGProc [] [ "p p > t t~ QED=0" ])
-                , (Just (3,6,[]) , MGProc [] [ "t > W+ b " ] ) 
-                , (Just (4,-6,[]), MGProc [] [ "t~ > W- b~ " ] )
+    HM.fromList [ (Nothing        , MGProc [] [ "p p > t t~ QED=0" ])
+                , (Just (3,6,[])  , MGProc [] [ "t > W+ b " ] ) 
+                , (Just (4,-6,[]) , MGProc [] [ "t~ > W- b~ " ] )
+                , (Just (1,24,[3]), MGProc [] [ "W+ > l+ vl" ] )
+                , (Just (1,-24,[4]), MGProc [] [ "W- > l- vl~" ] )
                 ] 
 
 proc :: SingleProc
-proc = SingleProc "ttbar_decay" p_ttbar map_ttbar mgrunsetup
+proc = SingleProc "ttbar_decay_full" p_ttbar map_ttbar mgrunsetup
 
 mgrunsetup :: NumOfEv -> SetNum -> RunSetup
 mgrunsetup (NumOfEv nev) (SetNum sn) = 
