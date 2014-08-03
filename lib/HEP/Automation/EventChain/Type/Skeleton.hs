@@ -32,8 +32,11 @@ import           Data.Traversable
 
 import Prelude hiding (foldr)
 
--- | 
 
+
+
+{- 
+-- | 
 instance Foldable ((,) b) where
   foldr f acc (_,y) = f y acc 
 
@@ -41,6 +44,7 @@ instance Foldable ((,) b) where
 
 instance Traversable ((,) b) where
   traverse f (x,y) = (,) x  <$> f y
+-}
 
 -- | 
 
