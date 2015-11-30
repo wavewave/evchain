@@ -1,9 +1,10 @@
-{-# LANGUAGE ScopedTypeVariables, RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RecordWildCards #-}
 
 -----------------------------------------------------------------------------
 -- |
 -- Module      : HEP.Automation.EventChain.Process.Generator
--- Copyright   : (c) 2012,2013 Ian-Woo Kim
+-- Copyright   : (c) 2012,2013,2015 Ian-Woo Kim
 --
 -- License     : GPL-3
 -- Maintainer  : Ian-Woo Kim <ianwookim@gmail.com>
@@ -164,7 +165,7 @@ lheCntX cross fp = do
 
 -- |
 cnt1EvtX :: (Show p) => CrossID p -> Counter -> LHEvent -> IO Counter 
-cnt1EvtX cross (Counter incomingm outgoingm) ev@LHEvent {..}  = do 
+cnt1EvtX cross (Counter incomingm outgoingm) ev = do 
     r <- matchX cross ev 
     case r of 
       Left err -> fail err
@@ -184,7 +185,7 @@ lheCntD i decay fp = do
 
 -- | 
 cnt1EvtD :: (Show p) => PDGID -> DecayID p -> Counter -> LHEvent -> IO Counter 
-cnt1EvtD i decay (Counter incomingm outgoingm) ev@LHEvent {..} = do 
+cnt1EvtD i decay (Counter incomingm outgoingm) ev = do 
     r <- matchD i decay ev 
     case r of 
       Left err -> fail err
